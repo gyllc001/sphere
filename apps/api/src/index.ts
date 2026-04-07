@@ -6,6 +6,7 @@ import brandAuthRoutes from './routes/brands.auth';
 import communityAuthRoutes from './routes/communities.auth';
 import campaignRoutes from './routes/campaigns';
 import communityPortalRoutes from './routes/community-portal';
+import matchingRoutes from './routes/matching';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -25,6 +26,7 @@ app.use('/api/brands/auth', brandAuthRoutes);
 app.use('/api/communities/auth', communityAuthRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/owner', communityPortalRoutes);
+app.use('/api/campaigns', matchingRoutes);
 
 app.listen(PORT, () => {
   console.log(`Sphere API running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);

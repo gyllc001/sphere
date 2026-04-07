@@ -1,0 +1,63 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sphere_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sphere
+      POSTGRES_PASSWORD: sphere_dev_pw
+      POSTGRES_DB: sphere_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - sphere_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sphere -d sphere_dev']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.dev
+    container_name: sphere_api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://sphere:sphere_dev_pw@db:5432/sphere_dev
+      ALLOWED_ORIGINS: http://localhost:3000
+    env_file:
+      - .env.local
+    ports:
+      - '4000:4000'
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - /app/node_modules
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.dev
+    container_name: sphere_web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+    env_file:
+      - .env.local
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+
+volumes:
+  sphere_db_data:

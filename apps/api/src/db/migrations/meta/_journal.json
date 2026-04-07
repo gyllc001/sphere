@@ -1,0 +1,13 @@
+{
+  "version": "6",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1775590246970,
+      "tag": "0000_sturdy_silver_centurion",
+      "breakpoints": true
+    }
+  ]
+}

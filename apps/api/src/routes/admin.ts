@@ -56,7 +56,7 @@ function parseCsv(text: string): Record<string, string>[] {
   });
 }
 
-function normalizeRow(raw: Record<string, string | number | undefined>): Record<string, unknown> {
+function normalizeRow(raw: Record<string, unknown>): Record<string, unknown> {
   // Map snake_case / varied keys to camelCase schema
   return {
     communityName: raw['communityName'] ?? raw['community_name'] ?? raw['name'],

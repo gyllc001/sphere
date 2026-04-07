@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import brandAuthRoutes from './routes/brands.auth';
+import communityAuthRoutes from './routes/communities.auth';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -17,15 +19,8 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', version: process.env.npm_package_version });
 });
 
-// Routes will be registered here as features are built
-// import authRoutes from './routes/auth';
-// import brandRoutes from './routes/brands';
-// import communityRoutes from './routes/communities';
-// import campaignRoutes from './routes/campaigns';
-// app.use('/api/auth', authRoutes);
-// app.use('/api/brands', brandRoutes);
-// app.use('/api/communities', communityRoutes);
-// app.use('/api/campaigns', campaignRoutes);
+app.use('/api/brands/auth', brandAuthRoutes);
+app.use('/api/communities/auth', communityAuthRoutes);
 
 app.listen(PORT, () => {
   console.log(`Sphere API running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);

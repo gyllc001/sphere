@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import brandAuthRoutes from './routes/brands.auth';
 import communityAuthRoutes from './routes/communities.auth';
 import campaignRoutes from './routes/campaigns';
+import communityPortalRoutes from './routes/community-portal';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -23,6 +24,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/brands/auth', brandAuthRoutes);
 app.use('/api/communities/auth', communityAuthRoutes);
 app.use('/api/campaigns', campaignRoutes);
+app.use('/api/owner', communityPortalRoutes);
 
 app.listen(PORT, () => {
   console.log(`Sphere API running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);

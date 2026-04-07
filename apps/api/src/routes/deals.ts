@@ -156,26 +156,96 @@ router.post('/:id/payout', async (req: Request, res: Response) => {
 });
 
 /**
- * PATCH /api/deals/:id/sign
- * Mark a deal as signed by the community owner.
+ * POST /api/deals/:id/sign
+ * STUB: Record a signature from either party (brand or community owner).
+ * Accepts signer_type: 'brand' | 'community'
+ * Returns a mock envelope_id and signed_at timestamp.
+ * Once both parties have signed (fully_executed), deal status advances to 'active'.
+ *
+ * In production this will create a DocuSign/HelloSign envelope and route it to signers.
  */
-router.patch('/:id/sign', async (req: Request, res: Response) => {
-  if (req.auth!.role !== 'community_owner') return res.status(403).json({ error: 'Only community owners can sign deals' });
+router.post('/:id/sign', async (req: Request, res: Response) => {
+  const signerTypeSchema = z.object({ signer_type: z.enum(['brand', 'community']) });
+  const parsed = signerTypeSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'signer_type must be "brand" or "community"' });
+
+  const { signer_type } = parsed.data;
+
+  // Enforce caller matches signer_type
+  if (signer_type === 'brand' && req.auth!.role !== 'brand') {
+    return res.status(403).json({ error: 'Only brands can sign as brand' });
+  }
+  if (signer_type === 'community' && req.auth!.role !== 'community_owner') {
+    return res.status(403).json({ error: 'Only community owners can sign as community' });
+  }
 
   const [deal] = await db.select().from(deals).where(eq(deals.id, req.params.id)).limit(1);
   if (!deal) return res.status(404).json({ error: 'Deal not found' });
-  if (deal.status !== 'contract_sent') return res.status(409).json({ error: `Deal must be in 'contract_sent' status to sign (current: ${deal.status})` });
+  if (deal.status !== 'contract_sent') {
+    return res.status(409).json({ error: `Deal must be in 'contract_sent' status to sign (current: ${deal.status})` });
+  }
 
-  const [community] = await db.select({ ownerId: communities.ownerId }).from(communities).where(eq(communities.id, deal.communityId)).limit(1);
-  if (community?.ownerId !== req.auth!.sub) return res.status(403).json({ error: 'Forbidden' });
+  // Verify caller is party to this deal
+  if (signer_type === 'brand') {
+    const [campaign] = await db.select({ brandId: campaigns.brandId }).from(campaigns).where(eq(campaigns.id, deal.campaignId)).limit(1);
+    if (campaign?.brandId !== req.auth!.sub) return res.status(403).json({ error: 'Forbidden' });
+  } else {
+    const [community] = await db.select({ ownerId: communities.ownerId }).from(communities).where(eq(communities.id, deal.communityId)).limit(1);
+    if (community?.ownerId !== req.auth!.sub) return res.status(403).json({ error: 'Forbidden' });
+  }
 
-  const [updated] = await db.update(deals).set({
-    status: 'signed',
-    signedAt: new Date(),
-    updatedAt: new Date(),
-  }).where(eq(deals.id, req.params.id)).returning();
+  const now = new Date();
+  // STUB: generate mock envelope_id and signed contract PDF URL
+  const envelopeId = deal.envelopeId ?? `env_stub_${deal.id.slice(0, 8)}_${Date.now()}`;
+  const signedContractUrl = deal.signedContractUrl ?? `https://stub-storage.sphere.app/contracts/${deal.id}/signed.pdf`;
 
-  return res.json(updated);
+  // Determine new signature_status
+  const currentSigStatus = deal.signatureStatus ?? 'unsigned';
+  let newSigStatus: 'unsigned' | 'brand_signed' | 'community_signed' | 'fully_executed' = currentSigStatus as any;
+
+  if (signer_type === 'brand') {
+    if (currentSigStatus === 'community_signed') {
+      newSigStatus = 'fully_executed';
+    } else if (currentSigStatus === 'unsigned') {
+      newSigStatus = 'brand_signed';
+    }
+  } else {
+    if (currentSigStatus === 'brand_signed') {
+      newSigStatus = 'fully_executed';
+    } else if (currentSigStatus === 'unsigned') {
+      newSigStatus = 'community_signed';
+    }
+  }
+
+  const fullyExecuted = newSigStatus === 'fully_executed';
+
+  const updatePayload: Record<string, any> = {
+    signatureStatus: newSigStatus,
+    envelopeId,
+    signedContractUrl,
+    updatedAt: now,
+    ...(signer_type === 'brand' ? { brandSignedAt: now } : { communitySignedAt: now }),
+    ...(fullyExecuted ? { status: 'active', signedAt: now } : {}),
+  };
+
+  const [updated] = await db.update(deals).set(updatePayload).where(eq(deals.id, req.params.id)).returning();
+
+  return res.json({
+    deal: updated,
+    signature: {
+      envelope_id: envelopeId,
+      signer_type,
+      signed_at: now.toISOString(),
+      signed_contract_url: signedContractUrl,
+      signature_status: newSigStatus,
+      fully_executed: fullyExecuted,
+      // STUB flags
+      _stub: true,
+      _message: fullyExecuted
+        ? 'Both parties have signed. Deal is now active. In production, DocuSign/HelloSign would deliver the executed PDF.'
+        : `Signature recorded for ${signer_type}. Awaiting the other party's signature.`,
+    },
+  });
 });
 
 export default router;

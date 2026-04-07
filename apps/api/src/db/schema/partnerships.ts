@@ -26,6 +26,13 @@ export const paymentStatusEnum = pgEnum('payment_status', [
   'refunded',
 ]);
 
+export const signatureStatusEnum = pgEnum('signature_status', [
+  'unsigned',
+  'brand_signed',
+  'community_signed',
+  'fully_executed',
+]);
+
 export const partnershipRequests = pgTable('partnership_requests', {
   id: uuid('id').primaryKey().defaultRandom(),
   campaignId: uuid('campaign_id').notNull().references(() => campaigns.id),
@@ -59,6 +66,11 @@ export const deals = pgTable('deals', {
   stripeTransferId: text('stripe_transfer_id'),
   paidAt: timestamp('paid_at'),
   payoutAt: timestamp('payout_at'),
+  signatureStatus: signatureStatusEnum('signature_status').notNull().default('unsigned'),
+  envelopeId: text('envelope_id'),
+  signedContractUrl: text('signed_contract_url'),
+  brandSignedAt: timestamp('brand_signed_at'),
+  communitySignedAt: timestamp('community_signed_at'),
   signedAt: timestamp('signed_at'),
   completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),

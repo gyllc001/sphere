@@ -19,6 +19,13 @@ export const dealStatusEnum = pgEnum('deal_status', [
   'cancelled',
 ]);
 
+export const paymentStatusEnum = pgEnum('payment_status', [
+  'pending',
+  'escrowed',
+  'released',
+  'refunded',
+]);
+
 export const partnershipRequests = pgTable('partnership_requests', {
   id: uuid('id').primaryKey().defaultRandom(),
   campaignId: uuid('campaign_id').notNull().references(() => campaigns.id),
@@ -46,6 +53,12 @@ export const deals = pgTable('deals', {
   status: dealStatusEnum('status').notNull().default('negotiating'),
   // Negotiation log stored as JSON string
   negotiationLog: text('negotiation_log'),
+  // Payment tracking
+  paymentStatus: paymentStatusEnum('payment_status').default('pending'),
+  stripePaymentIntentId: text('stripe_payment_intent_id'),
+  stripeTransferId: text('stripe_transfer_id'),
+  paidAt: timestamp('paid_at'),
+  payoutAt: timestamp('payout_at'),
   signedAt: timestamp('signed_at'),
   completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),

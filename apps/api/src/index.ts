@@ -34,6 +34,16 @@ app.use('/api/deals', dealRoutes);
 app.use('/api/metrics', metricsRoutes);
 app.use('/api/admin', express.text({ type: ['text/csv', 'text/plain'] }), adminRoutes);
 
+// Global error handler — prevent unhandled async route errors from crashing the process
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('Unhandled route error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+});
+
 app.listen(PORT, () => {
   console.log(`Sphere API running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
 });

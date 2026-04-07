@@ -92,10 +92,43 @@ export default function CommunitiesPage() {
                     <p className="text-sm text-gray-500 mt-1">
                       {PLATFORM_LABELS[c.platform] || c.platform} · {c.memberCount?.toLocaleString()} members
                       {c.niche && ` · ${c.niche}`}
+                      {c.vertical && ` · ${c.vertical}`}
                     </p>
                     {c.description && (
                       <p className="text-sm text-gray-500 mt-1 line-clamp-2">{c.description}</p>
                     )}
+                    <div className="flex gap-2 mt-2 flex-wrap">
+                      {c.adminDiscordUserId && (
+                        <a
+                          href={`https://discord.com/users/${c.adminDiscordUserId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-100"
+                        >
+                          Discord DM
+                        </a>
+                      )}
+                      {c.adminPhone && (
+                        <a
+                          href={`https://wa.me/${c.adminPhone.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-1 rounded hover:bg-green-100"
+                        >
+                          WhatsApp
+                        </a>
+                      )}
+                      {c.adminFacebookPageId && (
+                        <a
+                          href={`https://m.me/${c.adminFacebookPageId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded hover:bg-blue-100"
+                        >
+                          Messenger
+                        </a>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-col items-end gap-1 ml-4 text-right">
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${c.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>

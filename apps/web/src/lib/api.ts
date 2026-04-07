@@ -124,6 +124,9 @@ export interface Partnership {
   communityName: string;
   communityPlatform: string;
   communityMemberCount: number;
+  communityAdminDiscordUserId?: string;
+  communityAdminPhone?: string;
+  communityAdminFacebookPageId?: string;
   ownerName: string;
   deal: Deal | null;
 }
@@ -162,6 +165,10 @@ export interface Community {
   memberCount: number;
   engagementRate?: string;
   baseRate?: number;
+  adminDiscordUserId?: string;
+  adminPhone?: string;
+  adminFacebookPageId?: string;
+  vertical?: string;
   status: string;
 }
 
@@ -204,6 +211,38 @@ export const communityPortal = {
       method: 'POST',
       token,
       body: JSON.stringify({ action, ...extra }),
+    }),
+};
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+
+export interface BulkImportRow {
+  communityName: string;
+  adminName: string;
+  adminEmail: string;
+  adminPhone?: string;
+  platform: string;
+  vertical?: string;
+  size?: number;
+  rateCents?: number;
+  adminDiscordUserId?: string;
+  adminFacebookPageId?: string;
+  status?: string;
+}
+
+export interface BulkImportResult {
+  total: number;
+  succeeded: number;
+  failed: number;
+  results: { success: boolean; row: number; communityId?: string; ownerId?: string; error?: string }[];
+}
+
+export const adminApi = {
+  bulkImport: (adminKey: string, rows: BulkImportRow[]) =>
+    request<BulkImportResult>('/api/admin/communities/bulk-import', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${adminKey}` },
+      body: JSON.stringify(rows),
     }),
 };
 

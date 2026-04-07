@@ -29,6 +29,10 @@ export default function NewCommunity() {
     engagementRate: '',
     audienceDemographics: '',
     baseRate: '',
+    vertical: '',
+    adminDiscordUserId: '',
+    adminPhone: '',
+    adminFacebookPageId: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -58,6 +62,10 @@ export default function NewCommunity() {
       if (form.engagementRate) payload.engagementRate = form.engagementRate;
       if (form.audienceDemographics) payload.audienceDemographics = form.audienceDemographics;
       if (form.baseRate) payload.baseRate = Math.round(parseFloat(form.baseRate) * 100);
+      if (form.vertical) payload.vertical = form.vertical;
+      if (form.adminDiscordUserId) payload.adminDiscordUserId = form.adminDiscordUserId;
+      if (form.adminPhone) payload.adminPhone = form.adminPhone;
+      if (form.adminFacebookPageId) payload.adminFacebookPageId = form.adminFacebookPageId;
 
       await communityPortal.createCommunity(token, payload as any);
       router.push('/community/communities');
@@ -186,6 +194,60 @@ export default function NewCommunity() {
                 placeholder="e.g. 500"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vertical</label>
+              <select
+                value={form.vertical}
+                onChange={(e) => update('vertical', e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="">— Select vertical —</option>
+                {['Tech', 'Gaming', 'Fashion', 'Mom', 'Finance', 'Health', 'Food', 'Travel', 'Other'].map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="border-t pt-5">
+              <p className="text-sm font-semibold text-gray-700 mb-3">Contact Info for Brands</p>
+              <p className="text-xs text-gray-500 mb-4">Help brands reach you directly. These details are shown to matched brands only.</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Discord User ID</label>
+                  <input
+                    type="text"
+                    value={form.adminDiscordUserId}
+                    onChange={(e) => update('adminDiscordUserId', e.target.value)}
+                    placeholder="e.g. 123456789012345678"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Your Discord user ID (not username). Enables a direct DM link for brands.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Phone Number</label>
+                  <input
+                    type="tel"
+                    value={form.adminPhone}
+                    onChange={(e) => update('adminPhone', e.target.value)}
+                    placeholder="e.g. +14155552671"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Include country code. Used to generate a wa.me link.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Facebook Page ID or Username</label>
+                  <input
+                    type="text"
+                    value={form.adminFacebookPageId}
+                    onChange={(e) => update('adminFacebookPageId', e.target.value)}
+                    placeholder="e.g. mypage or 100000123456789"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Your Facebook Page username or numeric ID. Used for Messenger contact link.</p>
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-3 pt-2">

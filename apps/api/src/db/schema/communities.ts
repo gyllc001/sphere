@@ -40,6 +40,11 @@ export const communities = pgTable('communities', {
   audienceDemographics: text('audience_demographics'),
   // Pricing
   baseRate: integer('base_rate'),
+  // Contact integrations
+  adminDiscordUserId: text('admin_discord_user_id'),
+  adminPhone: varchar('admin_phone', { length: 50 }),
+  adminFacebookPageId: text('admin_facebook_page_id'),
+  vertical: varchar('vertical', { length: 50 }),
   status: communityStatusEnum('status').notNull().default('pending_review'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

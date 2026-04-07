@@ -23,6 +23,10 @@ const CommunitySchema = z.object({
   engagementRate: z.string().max(20).optional(),
   audienceDemographics: z.string().optional(),
   baseRate: z.number().int().positive().optional(),
+  adminDiscordUserId: z.string().max(50).optional(),
+  adminPhone: z.string().max(50).optional(),
+  adminFacebookPageId: z.string().max(100).optional(),
+  vertical: z.enum(['Tech', 'Gaming', 'Fashion', 'Mom', 'Finance', 'Health', 'Food', 'Travel', 'Other']).optional(),
 });
 
 function toSlug(name: string): string {
@@ -50,6 +54,10 @@ router.post('/communities', async (req: Request, res: Response) => {
     engagementRate: data.engagementRate,
     audienceDemographics: data.audienceDemographics,
     baseRate: data.baseRate,
+    adminDiscordUserId: data.adminDiscordUserId,
+    adminPhone: data.adminPhone,
+    adminFacebookPageId: data.adminFacebookPageId,
+    vertical: data.vertical,
   }).returning();
 
   return res.status(201).json(community);

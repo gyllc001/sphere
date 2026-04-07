@@ -105,6 +105,38 @@ export default function CampaignDetail() {
                         {p.matchScore != null && <span>Match score: {p.matchScore}</span>}
                         <span>Proposed rate: {formatRate(p.proposedRateCents)}</span>
                       </div>
+                      <div className="flex gap-2 mt-2 flex-wrap">
+                        {p.communityAdminDiscordUserId && (
+                          <a
+                            href={`https://discord.com/users/${p.communityAdminDiscordUserId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-100"
+                          >
+                            Message on Discord
+                          </a>
+                        )}
+                        {p.communityAdminPhone && (
+                          <a
+                            href={`https://wa.me/${p.communityAdminPhone.replace(/[^0-9]/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-1 rounded hover:bg-green-100"
+                          >
+                            WhatsApp
+                          </a>
+                        )}
+                        {p.communityAdminFacebookPageId && (
+                          <a
+                            href={`https://m.me/${p.communityAdminFacebookPageId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded hover:bg-blue-100"
+                          >
+                            Facebook Messenger
+                          </a>
+                        )}
+                      </div>
                     </div>
                     <div className="flex flex-col items-end gap-2 ml-4">
                       <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_COLORS[p.status] || 'bg-gray-100 text-gray-600'}`}>

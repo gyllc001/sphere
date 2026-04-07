@@ -122,6 +122,9 @@ router.get('/:id/partnerships', async (req: Request, res: Response) => {
       communityName: communities.name,
       communityPlatform: communities.platform,
       communityMemberCount: communities.memberCount,
+      communityAdminDiscordUserId: communities.adminDiscordUserId,
+      communityAdminPhone: communities.adminPhone,
+      communityAdminFacebookPageId: communities.adminFacebookPageId,
       ownerName: communityOwners.name,
     })
     .from(partnershipRequests)

@@ -2,6 +2,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Cache bust: 2026-04-07
+ARG CACHEBUST=1
+
 COPY package*.json ./
 COPY apps/api/package*.json ./apps/api/
 COPY packages/ ./packages/

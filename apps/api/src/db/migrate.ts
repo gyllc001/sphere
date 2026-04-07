@@ -16,6 +16,6 @@ async function runMigrations() {
 }
 
 runMigrations().catch((err) => {
-  console.error('Migration failed:', err);
-  process.exit(1);
+  console.error('Migration failed (non-fatal):', err);
+  // Don't exit — let the server start; DB errors will surface at request time
 });

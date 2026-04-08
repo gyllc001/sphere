@@ -277,3 +277,77 @@ export const dealsApi = {
   sign: (token: string, id: string) =>
     request<Deal>(`/api/deals/${id}/sign`, { method: 'PATCH', token }),
 };
+
+// ── Content Submissions ───────────────────────────────────────────────────────
+
+export type ContentSubmissionStatus =
+  | 'draft'
+  | 'pending_review'
+  | 'changes_requested'
+  | 'approved'
+  | 'posted'
+  | 'confirmed'
+  | 'disputed';
+
+export interface ContentSubmission {
+  id: string;
+  dealId: string;
+  brief: string;
+  assetUrls: string; // JSON array string
+  status: ContentSubmissionStatus;
+  brandApproved: number;
+  communityApproved: number;
+  changesRequestedNote?: string;
+  postUrl?: string;
+  postedAt?: string;
+  confirmedAt?: string;
+  payoutQueuedAt?: string;
+  disputedAt?: string;
+  disputeNote?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const contentApi = {
+  list: (token: string, dealId: string) =>
+    request<ContentSubmission[]>(`/api/deals/${dealId}/content`, { token }),
+
+  submit: (token: string, dealId: string, data: { brief: string; assetUrls?: string[] }) =>
+    request<ContentSubmission>(`/api/deals/${dealId}/content`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify(data),
+    }),
+
+  approve: (token: string, dealId: string, submissionId: string) =>
+    request<ContentSubmission>(`/api/deals/${dealId}/content/${submissionId}/approve`, {
+      method: 'POST',
+      token,
+    }),
+
+  requestChanges: (token: string, dealId: string, submissionId: string, note: string) =>
+    request<ContentSubmission>(`/api/deals/${dealId}/content/${submissionId}/request-changes`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ note }),
+    }),
+
+  markPosted: (token: string, dealId: string, submissionId: string, postUrl?: string) =>
+    request<ContentSubmission>(`/api/deals/${dealId}/content/${submissionId}/posted`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ postUrl }),
+    }),
+
+  confirm: (token: string, dealId: string, submissionId: string) =>
+    request<{ submission: ContentSubmission; payoutQueued: boolean; message: string }>(
+      `/api/deals/${dealId}/content/${submissionId}/confirm`,
+      { method: 'POST', token }
+    ),
+
+  dispute: (token: string, dealId: string, submissionId: string, note: string) =>
+    request<{ submission: ContentSubmission; message: string }>(
+      `/api/deals/${dealId}/content/${submissionId}/dispute`,
+      { method: 'POST', token, body: JSON.stringify({ note }) }
+    ),
+};

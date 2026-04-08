@@ -8,6 +8,7 @@ import campaignRoutes from './routes/campaigns';
 import communityPortalRoutes from './routes/community-portal';
 import matchingRoutes from './routes/matching';
 import dealRoutes from './routes/deals';
+import contentSubmissionRoutes from './routes/content-submissions';
 import metricsRoutes from './routes/metrics';
 import adminRoutes from './routes/admin';
 
@@ -31,6 +32,7 @@ app.use('/api/campaigns', campaignRoutes);
 app.use('/api/owner', communityPortalRoutes);
 app.use('/api/campaigns', matchingRoutes);
 app.use('/api/deals', dealRoutes);
+app.use('/api/deals/:dealId/content', contentSubmissionRoutes);
 app.use('/api/metrics', metricsRoutes);
 app.use('/api/admin', express.text({ type: ['text/csv', 'text/plain'] }), adminRoutes);
 

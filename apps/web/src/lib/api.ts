@@ -206,7 +206,42 @@ export const campaigns = {
       token,
       body: JSON.stringify({ decision, ...extra }),
     }),
+
+  report: (token: string, campaignId: string) =>
+    request<CampaignReport>(`/api/campaigns/${campaignId}/report`, { token }),
 };
+
+export interface CampaignReportDeal {
+  dealId: string;
+  communityName: string;
+  platform: string;
+  memberCount: number | null;
+  niche: string | null;
+  ownerName: string;
+  agreedRateCents: number;
+  dealStatus: string;
+  paymentStatus: string | null;
+  signatureStatus: string;
+  signedContractUrl: string | null;
+  deliverables: string | null;
+  paidAt: string | null;
+  completedAt: string | null;
+  dealCreatedAt: string;
+}
+
+export interface CampaignReport {
+  generatedAt: string;
+  campaign: Campaign;
+  summary: {
+    totalDeals: number;
+    activeDeals: number;
+    completedDeals: number;
+    totalContractedCents: number;
+    totalSpentCents: number;
+    estimatedTotalReach: number;
+  };
+  deals: CampaignReportDeal[];
+}
 
 // ── Community Portal ──────────────────────────────────────────────────────────
 

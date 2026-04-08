@@ -361,4 +361,134 @@ router.get('/dashboard/summary', async (req: Request, res: Response) => {
   return res.json(summary);
 });
 
+// ── Campaign Report Export (SPHA-59) ─────────────────────────────────────────
+
+/**
+ * GET /api/campaigns/:id/report?format=json|csv
+ *
+ * Returns a post-campaign performance report.
+ * Available for any campaign that has at least one deal (any status).
+ * ?format=csv  → CSV download
+ * ?format=json (default) → structured JSON
+ */
+router.get('/:id/report', async (req: Request, res: Response) => {
+  const [campaign] = await db
+    .select()
+    .from(campaigns)
+    .where(and(eq(campaigns.id, req.params.id), eq(campaigns.brandId, req.auth!.sub)))
+    .limit(1);
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+  // Load all deals for this campaign with community info
+  const dealRows = await db
+    .select({
+      dealId: deals.id,
+      dealStatus: deals.status,
+      agreedRateCents: deals.agreedRateCents,
+      deliverables: deals.deliverables,
+      paymentStatus: deals.paymentStatus,
+      paidAt: deals.paidAt,
+      payoutAt: deals.payoutAt,
+      signatureStatus: deals.signatureStatus,
+      signedContractUrl: deals.signedContractUrl,
+      completedAt: deals.completedAt,
+      createdAt: deals.createdAt,
+      communityId: communities.id,
+      communityName: communities.name,
+      communityPlatform: communities.platform,
+      communityMemberCount: communities.memberCount,
+      communityNiche: communities.niche,
+      ownerName: communityOwners.name,
+    })
+    .from(deals)
+    .innerJoin(communities, eq(deals.communityId, communities.id))
+    .innerJoin(communityOwners, eq(communities.ownerId, communityOwners.id))
+    .where(eq(deals.campaignId, campaign.id))
+    .orderBy(deals.createdAt);
+
+  const totalSpentCents = dealRows
+    .filter((d) => ['active', 'completed'].includes(d.dealStatus))
+    .reduce((sum, d) => sum + d.agreedRateCents, 0);
+
+  const totalContractedCents = dealRows.reduce((sum, d) => sum + d.agreedRateCents, 0);
+
+  const estimatedReach = dealRows.reduce((sum, d) => sum + (d.communityMemberCount ?? 0), 0);
+
+  const reportData = {
+    generatedAt: new Date().toISOString(),
+    campaign: {
+      id: campaign.id,
+      title: campaign.title,
+      brief: campaign.brief,
+      niche: campaign.niche,
+      budgetCents: campaign.budgetCents,
+      startDate: campaign.startDate,
+      endDate: campaign.endDate,
+      status: campaign.status,
+      createdAt: campaign.createdAt,
+    },
+    summary: {
+      totalDeals: dealRows.length,
+      activeDeals: dealRows.filter((d) => d.dealStatus === 'active').length,
+      completedDeals: dealRows.filter((d) => d.dealStatus === 'completed').length,
+      totalContractedCents,
+      totalSpentCents,
+      estimatedTotalReach: estimatedReach,
+    },
+    deals: dealRows.map((d) => ({
+      dealId: d.dealId,
+      communityName: d.communityName,
+      platform: d.communityPlatform,
+      memberCount: d.communityMemberCount,
+      niche: d.communityNiche,
+      ownerName: d.ownerName,
+      agreedRateCents: d.agreedRateCents,
+      dealStatus: d.dealStatus,
+      paymentStatus: d.paymentStatus,
+      signatureStatus: d.signatureStatus,
+      signedContractUrl: d.signedContractUrl,
+      deliverables: d.deliverables,
+      paidAt: d.paidAt,
+      payoutAt: d.payoutAt,
+      completedAt: d.completedAt,
+      dealCreatedAt: d.createdAt,
+    })),
+  };
+
+  const format = req.query.format ?? 'json';
+
+  if (format === 'csv') {
+    const headers = [
+      'Community Name', 'Platform', 'Members', 'Niche', 'Owner', 'Agreed Rate ($)',
+      'Deal Status', 'Payment Status', 'Signature Status', 'Deliverables',
+      'Paid At', 'Completed At',
+    ];
+    const csvRows = [
+      headers.join(','),
+      ...reportData.deals.map((d) =>
+        [
+          `"${(d.communityName ?? '').replace(/"/g, '""')}"`,
+          d.platform ?? '',
+          d.memberCount ?? '',
+          `"${(d.niche ?? '').replace(/"/g, '""')}"`,
+          `"${(d.ownerName ?? '').replace(/"/g, '""')}"`,
+          d.agreedRateCents != null ? (d.agreedRateCents / 100).toFixed(2) : '',
+          d.dealStatus ?? '',
+          d.paymentStatus ?? '',
+          d.signatureStatus ?? '',
+          `"${(d.deliverables ?? '').replace(/"/g, '""')}"`,
+          d.paidAt ? new Date(d.paidAt).toISOString() : '',
+          d.completedAt ? new Date(d.completedAt).toISOString() : '',
+        ].join(','),
+      ),
+    ];
+    const filename = `sphere-campaign-report-${campaign.id.slice(0, 8)}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.send(csvRows.join('\n'));
+  }
+
+  return res.json(reportData);
+});
+
 export default router;

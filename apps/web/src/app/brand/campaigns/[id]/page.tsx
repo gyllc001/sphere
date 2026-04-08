@@ -83,9 +83,15 @@ export default function CampaignDetail() {
       <header className="bg-white border-b px-6 py-4 flex items-center gap-4">
         <Link href="/brand/dashboard" className="text-sm text-gray-500 hover:text-gray-800">← Dashboard</Link>
         <h1 className="text-lg font-semibold truncate">{campaign.title}</h1>
-        <span className={`text-xs font-medium px-2 py-1 rounded-full ml-auto ${STATUS_COLORS[campaign.status] || 'bg-gray-100 text-gray-600'}`}>
+        <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_COLORS[campaign.status] || 'bg-gray-100 text-gray-600'}`}>
           {campaign.status}
         </span>
+        <Link
+          href={`/brand/campaigns/${id}/report`}
+          className="ml-auto text-sm px-3 py-1.5 border rounded-md text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+        >
+          Download Report
+        </Link>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">

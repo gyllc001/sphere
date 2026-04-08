@@ -89,23 +89,28 @@ router.post('/login', async (req: Request, res: Response) => {
   }
   const { email, password } = parsed.data;
 
-  const [brand] = await db.select().from(brands).where(eq(brands.email, email)).limit(1);
-  if (!brand) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-  const valid = await bcrypt.compare(password, brand.passwordHash);
-  if (!valid) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-  if (brand.status !== 'active') {
-    return res.status(403).json({ error: 'Account suspended' });
-  }
+  try {
+    const [brand] = await db.select().from(brands).where(eq(brands.email, email)).limit(1);
+    if (!brand) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    const valid = await bcrypt.compare(password, brand.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    if (brand.status !== 'active') {
+      return res.status(403).json({ error: 'Account suspended' });
+    }
 
-  const token = signToken(brand.id, 'brand');
-  return res.json({
-    token,
-    brand: { id: brand.id, name: brand.name, email: brand.email, slug: brand.slug },
-  });
+    const token = signToken(brand.id, 'brand');
+    return res.json({
+      token,
+      brand: { id: brand.id, name: brand.name, email: brand.email, slug: brand.slug },
+    });
+  } catch (err) {
+    console.error('[brands/login] DB error:', err);
+    return res.status(500).json({ error: 'Login service unavailable. Please try again.' });
+  }
 });
 
 /**

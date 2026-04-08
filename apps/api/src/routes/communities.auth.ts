@@ -76,23 +76,28 @@ router.post('/login', async (req: Request, res: Response) => {
   }
   const { email, password } = parsed.data;
 
-  const [owner] = await db.select().from(communityOwners).where(eq(communityOwners.email, email)).limit(1);
-  if (!owner) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-  const valid = await bcrypt.compare(password, owner.passwordHash);
-  if (!valid) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-  if (owner.status !== 'active') {
-    return res.status(403).json({ error: 'Account suspended' });
-  }
+  try {
+    const [owner] = await db.select().from(communityOwners).where(eq(communityOwners.email, email)).limit(1);
+    if (!owner) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    const valid = await bcrypt.compare(password, owner.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    if (owner.status !== 'active') {
+      return res.status(403).json({ error: 'Account suspended' });
+    }
 
-  const token = signToken(owner.id, 'community_owner');
-  return res.json({
-    token,
-    owner: { id: owner.id, name: owner.name, email: owner.email },
-  });
+    const token = signToken(owner.id, 'community_owner');
+    return res.json({
+      token,
+      owner: { id: owner.id, name: owner.name, email: owner.email },
+    });
+  } catch (err) {
+    console.error('[communities/login] DB error:', err);
+    return res.status(500).json({ error: 'Login service unavailable. Please try again.' });
+  }
 });
 
 /**

@@ -290,4 +290,139 @@ router.post('/scraper/run', async (_req: Request, res: Response) => {
   }
 });
 
+// ── CSV Seed (SPHA-65) ────────────────────────────────────────────────────────
+
+function parseMemberCount(raw: string): number | null {
+  const s = (raw ?? '').replace(/,/g, '').trim();
+  const m = s.match(/^([\d.]+)\s*([KkMm])?\s*(members?|subscribers?)?$/i);
+  if (!m) return null;
+  const num = parseFloat(m[1]);
+  if (isNaN(num)) return null;
+  const mult = m[2]?.toUpperCase() === 'K' ? 1000 : m[2]?.toUpperCase() === 'M' ? 1_000_000 : 1;
+  return Math.round(num * mult);
+}
+
+function parseCsvText(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (ch === '"' && next === '"') { field += '"'; i++; }
+      else if (ch === '"') { inQuotes = false; }
+      else { field += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { row.push(field.trim()); field = ''; }
+      else if (ch === '\n') { row.push(field.trim()); if (row.some(f => f !== '')) rows.push(row); row = []; field = ''; }
+      else if (ch !== '\r') { field += ch; }
+    }
+  }
+  row.push(field.trim());
+  if (row.some(f => f !== '')) rows.push(row);
+  return rows;
+}
+
+async function fetchCsvAttachment(attachmentId: string): Promise<string> {
+  const apiUrl = process.env.PAPERCLIP_API_URL;
+  const apiKey = process.env.PAPERCLIP_API_KEY;
+  if (!apiUrl || !apiKey) throw new Error('PAPERCLIP_API_URL and PAPERCLIP_API_KEY must be set to seed from CSV attachments');
+  const resp = await fetch(`${apiUrl}/api/attachments/${attachmentId}/content`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!resp.ok) throw new Error(`Attachment fetch failed: ${resp.status}`);
+  return resp.text();
+}
+
+/**
+ * POST /api/admin/seed-csv-communities
+ * Import Gaming + Health communities from the SPHA-60 CSV attachments.
+ * Idempotent: uses ON CONFLICT DO NOTHING on (platform, handle).
+ */
+router.post('/seed-csv-communities', async (_req: Request, res: Response) => {
+  try {
+    const [gamingCsv, healthCsv] = await Promise.all([
+      fetchCsvAttachment('33baf2b9-840b-4558-b975-1caf6dff86d5'),
+      fetchCsvAttachment('ddb2020e-9382-4c18-a8b1-28ac267aeca2'),
+    ]);
+
+    // Parse Gaming CSV: Channel Name, Channel Category, Channel, Channel Link, Members, "Administator\nUsername", Contact Method
+    const gamingData = parseCsvText(gamingCsv).slice(1).filter(r => r[0]);
+    const gamingRows = gamingData.map(r => {
+      const [name, category, , link, members, adminUsername, contactMethod] = r;
+      const url = link?.trim() || null;
+      const handleMatch = url?.match(/discord\.com\/invite\/([^/?#]+)/i);
+      return {
+        name: name.trim(), platform: 'discord',
+        handle: handleMatch ? handleMatch[1] : null, url,
+        memberCount: parseMemberCount(members ?? ''),
+        nicheTags: category ? [category.trim()] : [],
+        adminContactEmail: contactMethod?.includes('@') ? contactMethod.trim() : null,
+        adminContactName: adminUsername?.trim() || null,
+      };
+    });
+
+    // Parse Health CSV: Community Name, Category, Link, Members, Email, Country?
+    const healthData = parseCsvText(healthCsv).slice(1).filter(r => r[0]);
+    const healthRows = healthData.map(r => {
+      const [name, category, link, members, email] = r;
+      const url = link?.trim() || null;
+      const handle = url?.replace(/https?:\/\/[^/]+/, '').replace(/\/$/, '') || null;
+      return {
+        name: name.trim(), platform: 'facebook',
+        handle, url,
+        memberCount: parseMemberCount(members ?? ''),
+        nicheTags: category ? [category.trim()] : [],
+        adminContactEmail: email?.trim() || null,
+        adminContactName: null,
+      };
+    });
+
+    const allRows = [...gamingRows, ...healthRows];
+
+    // Dedup on URL before insert
+    const seenUrls = new Set<string>();
+    const deduped = allRows.filter(r => {
+      const key = (r.url ?? `nourl:${r.name}`).toLowerCase();
+      if (seenUrls.has(key)) return false;
+      seenUrls.add(key);
+      return true;
+    });
+
+    let inserted = 0, skipped = 0;
+    for (const row of deduped) {
+      try {
+        const result = await db
+          .insert(scrapedCommunities)
+          .values({
+            name: row.name, platform: row.platform,
+            handle: row.handle ?? undefined, url: row.url ?? undefined,
+            memberCount: row.memberCount ?? undefined,
+            nicheTags: row.nicheTags,
+            adminContactEmail: row.adminContactEmail ?? undefined,
+            adminContactName: row.adminContactName ?? undefined,
+            verificationStatus: 'unverified',
+          })
+          .onConflictDoNothing()
+          .returning({ id: scrapedCommunities.id });
+        if (result.length > 0) inserted++; else skipped++;
+      } catch { skipped++; }
+    }
+
+    const [{ count }] = await db
+      .select({ count: drizzleSql<number>`COUNT(*)::int` })
+      .from(scrapedCommunities);
+
+    return res.json({
+      message: `CSV seed complete. ${inserted} inserted, ${skipped} skipped (duplicates/conflicts).`,
+      inserted, skipped, totalInDb: Number(count),
+      sources: { gaming: gamingRows.length, health: healthRows.length, afterDedup: deduped.length },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

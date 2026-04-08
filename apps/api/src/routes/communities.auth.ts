@@ -73,7 +73,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
 router.get('/me', requireAuth, requireRole('community_owner'), async (req: Request, res: Response) => {
   const [owner] = await db
-    .select({ id: communityOwners.id, name: communityOwners.name, email: communityOwners.email, bio: communityOwners.bio, avatarUrl: communityOwners.avatarUrl, status: communityOwners.status })
+    .select({ id: communityOwners.id, name: communityOwners.name, email: communityOwners.email, bio: communityOwners.bio, avatarUrl: communityOwners.avatarUrl, status: communityOwners.status, createdAt: communityOwners.createdAt })
     .from(communityOwners)
     .where(eq(communityOwners.id, req.auth!.sub))
     .limit(1);

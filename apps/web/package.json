@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@sphere/ui": "*",
+    "posthog-js": "^1.365.1",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",

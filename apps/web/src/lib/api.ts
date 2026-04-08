@@ -42,6 +42,7 @@ export interface Brand {
   website?: string;
   industry?: string;
   description?: string;
+  createdAt?: string;
 }
 
 export const brandAuth = {
@@ -115,6 +116,7 @@ export interface CommunityOwner {
   email: string;
   bio?: string;
   avatarUrl?: string;
+  createdAt?: string;
 }
 
 export const communityAuth = {

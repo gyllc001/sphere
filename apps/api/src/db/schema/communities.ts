@@ -35,6 +35,7 @@ export const communityPlatformEnum = pgEnum('community_platform', [
   'reddit',
   'circle',
   'mighty_networks',
+  'newsletter',
   'other',
 ]);
 export const communityStatusEnum = pgEnum('community_status', ['active', 'inactive', 'pending_review']);

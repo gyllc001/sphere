@@ -16,6 +16,7 @@ import disputeRoutes from './routes/disputes';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+console.log(`[startup] PORT=${PORT} NODE_ENV=${process.env.NODE_ENV} DATABASE_URL=${process.env.DATABASE_URL ? 'set' : 'MISSING'}`);
 
 app.use(helmet());
 app.use(cors({

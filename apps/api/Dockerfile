@@ -27,6 +27,6 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/package.json ./package.json
 COPY --from=builder /app/apps/api/src/db/migrations ./migrations
 
-EXPOSE 4000
+EXPOSE 8080
 
 CMD ["node", "dist/index.js"]

@@ -44,15 +44,11 @@ services:
     autoDeploy: true
     plan: free
     envVars:
-      # Postgres connection string — Adminer uses this as the default server
+      # Pre-fills the "Server" field in Adminer's login form
       - key: ADMINER_DEFAULT_SERVER
         fromDatabase:
           name: sphere-db
           property: host
-      - key: ADMINER_DEFAULT_DB
-        value: sphere
-      - key: ADMINER_DEFAULT_DRIVER
-        value: pgsql
       # HTTP Basic Auth credentials — set these in the Render dashboard
       - key: ADMINER_AUTH_USER
         sync: false

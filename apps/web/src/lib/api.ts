@@ -32,6 +32,24 @@ async function request<T>(
   return res.json();
 }
 
+// Uses relative paths so requests go through the Vercel proxy rewrite (/api/* → Render).
+// Required for admin endpoints — avoids hardcoded API_URL which may not be set in production.
+async function proxyRequest<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  };
+  const res = await fetch(path, { ...options, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+  return res.json();
+}
+
 // ── Brand Auth ──────────────────────────────────────────────────────────────
 
 export interface Brand {
@@ -524,19 +542,19 @@ export const adminApi = {
     if (filters.limit != null) params.set('limit', String(filters.limit));
     if (filters.offset != null) params.set('offset', String(filters.offset));
     const qs = params.toString();
-    return request<ScrapedCommunitiesResponse>(
+    return proxyRequest<ScrapedCommunitiesResponse>(
       `/api/admin/scraped-communities${qs ? `?${qs}` : ''}`,
       { headers: { Authorization: `Bearer ${adminKey}` } },
     );
   },
 
   getScraperStats: (adminKey: string) =>
-    request<ScraperStats>('/api/admin/scraped-communities/stats', {
+    proxyRequest<ScraperStats>('/api/admin/scraped-communities/stats', {
       headers: { Authorization: `Bearer ${adminKey}` },
     }),
 
   runScraper: (adminKey: string) =>
-    request<{ message: string; results: { platform: string; inserted: number }[] }>(
+    proxyRequest<{ message: string; results: { platform: string; inserted: number }[] }>(
       '/api/admin/scraper/run',
       { method: 'POST', headers: { Authorization: `Bearer ${adminKey}` } },
     ),

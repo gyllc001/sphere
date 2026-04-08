@@ -5,8 +5,10 @@ services:
     # Dockerfile lives at apps/api/Dockerfile but is built from the repo root
     # (it references packages/ and the workspace root package.json)
     dockerfilePath: apps/api/Dockerfile
-    # Override CMD to run migrations before starting the server
+    startCommand: node dist/db/migrate.js && node dist/index.js
     healthCheckPath: /health
+    branch: main
+    autoDeploy: true
     plan: free
     envVars:
       - key: DATABASE_URL
@@ -23,6 +25,9 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: ANTHROPIC_API_KEY
+        sync: false
+      # Required for admin routes (/api/admin/*). Set in Render dashboard.
+      - key: ADMIN_API_KEY
         sync: false
 
 databases:

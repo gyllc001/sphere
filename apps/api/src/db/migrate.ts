@@ -17,8 +17,10 @@ async function runMigrations() {
   } finally {
     // Always close the pool so this process exits and the API server can start.
     // Without this, a failed migration leaves open pg handles and Node never exits.
-    await pool.end();
+    try { await pool.end(); } catch (_) { /* ignore */ }
   }
+  // Force exit so any stale pg connections don't keep the process alive.
+  process.exit(0);
 }
 
 runMigrations().catch((err) => {

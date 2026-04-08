@@ -52,6 +52,19 @@ app.get('/health', async (_req, res) => {
   });
 });
 
+// Diagnostic: test raw pool query against actual tables (not just SELECT 1)
+app.get('/health/db-tables', async (_req, res) => {
+  try {
+    const result = await dbPool.query(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
+    );
+    const tables = result.rows.map((r: { table_name: string }) => r.table_name);
+    res.json({ ok: true, tables });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
 app.use('/api/brands/auth', brandAuthRoutes);
 app.use('/api/communities/auth', communityAuthRoutes);
 app.use('/api/campaigns', campaignRoutes);

@@ -34,6 +34,31 @@ services:
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
 
+  - type: web
+    name: sphere-db-admin
+    runtime: docker
+    dockerfilePath: apps/db-admin/Dockerfile
+    # Build context scoped to apps/db-admin/ — Dockerfile only needs index.php
+    dockerContext: apps/db-admin
+    branch: main
+    autoDeploy: true
+    plan: free
+    envVars:
+      # Postgres connection string — Adminer uses this as the default server
+      - key: ADMINER_DEFAULT_SERVER
+        fromDatabase:
+          name: sphere-db
+          property: host
+      - key: ADMINER_DEFAULT_DB
+        value: sphere
+      - key: ADMINER_DEFAULT_DRIVER
+        value: pgsql
+      # HTTP Basic Auth credentials — set these in the Render dashboard
+      - key: ADMINER_AUTH_USER
+        sync: false
+      - key: ADMINER_AUTH_PASS
+        sync: false
+
 databases:
   - name: sphere-db
     plan: free

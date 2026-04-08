@@ -682,7 +682,7 @@ export default function DealPage() {
     const auth = getActiveAuth();
     if (!auth) return;
     setLoading(true); setActionError('');
-    try { const updated = await dealsApi.sign(auth.token, id); track('deal_accepted', { user_type: auth.role, deal_id: id }); setDeal(updated); }
+    try { const updated = await dealsApi.sign(auth.token, id, auth.role as 'brand' | 'community'); track('deal_accepted', { user_type: auth.role, deal_id: id }); setDeal(updated); }
     catch (err: any) { setActionError(err.message); }
     finally { setLoading(false); }
   }

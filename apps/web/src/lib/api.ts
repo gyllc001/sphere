@@ -497,8 +497,12 @@ export const dealsApi = {
       token,
     }),
 
-  sign: (token: string, id: string) =>
-    request<Deal>(`/api/deals/${id}/sign`, { method: 'PATCH', token }),
+  sign: (token: string, id: string, signerType: 'brand' | 'community') =>
+    request<Deal>(`/api/deals/${id}/sign`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ signer_type: signerType }),
+    }),
 };
 
 // ── Content Submissions ───────────────────────────────────────────────────────

@@ -14,8 +14,6 @@ import {
   sendBrandAcquisitionNotificationEmail,
 } from './email';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 export interface MatchResult {
   communityId: string;
   communityName: string;
@@ -106,6 +104,7 @@ async function scoreWithClaude(
   campaign: { title: string; brief: string; objectives: string | null; targetAudience: string | null; niche: string | null; minCommunitySize: number | null; budgetCents: number | null },
   community: { name: string; platform: string; niche: string | null; memberCount: number; engagementRate: string | null; description: string | null; baseRate: number | null },
 ): Promise<{ score: number; rationale: string }> {
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const prompt = `You are a brand-community partnership analyst. Score this community's fit for the campaign brief.
 
 CAMPAIGN:

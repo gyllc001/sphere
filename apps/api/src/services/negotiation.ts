@@ -9,8 +9,6 @@ import { db } from '../db';
 import { deals, campaigns, communities, brands, communityOwners, partnershipRequests } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 export type NegotiationAction =
   | { action: 'accept'; finalRateCents: number }
   | { action: 'counter'; counterRateCents: number; message: string }
@@ -32,6 +30,7 @@ interface NegotiationContext {
  * Ask Claude what the brand's AI agent should do next in negotiation.
  */
 async function getAiNegotiationDecision(ctx: NegotiationContext): Promise<NegotiationAction> {
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const budgetStr = ctx.budgetCents ? `$${(ctx.budgetCents / 100).toFixed(2)}` : 'flexible';
   const currentStr = `$${(ctx.currentProposedRateCents / 100).toFixed(2)}`;
 

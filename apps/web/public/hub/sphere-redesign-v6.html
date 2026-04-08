@@ -1,0 +1,2141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Sphere v6 — Platform Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════════
+   DESIGN TOKENS — Sphere v6
+═══════════════════════════════════════════════════ */
+:root {
+  /* Base surfaces */
+  --bg-deep:          #070710;
+  --bg-mid:           #0c0c1a;
+  --bg-surface:       #11111f;
+
+  /* Accent palette */
+  --violet:           #7c3aed;
+  --violet-light:     #a78bfa;
+  --violet-dim:       rgba(124,58,237,0.15);
+  --indigo:           #4f46e5;
+  --cyan:             #06b6d4;
+  --cyan-light:       #67e8f9;
+  --cyan-dim:         rgba(6,182,212,0.15);
+  --rose:             #f43f5e;
+  --rose-light:       #fda4af;
+  --amber:            #f59e0b;
+  --amber-light:      #fcd34d;
+  --green:            #10b981;
+  --green-light:      #6ee7b7;
+
+  /* Glass recipe */
+  --glass-bg:         rgba(255,255,255,0.055);
+  --glass-border:     rgba(255,255,255,0.10);
+  --glass-blur:       20px;
+  --glass-shadow:     0 8px 48px rgba(0,0,0,0.55);
+
+  --glass-el-bg:      rgba(255,255,255,0.09);
+  --glass-el-border:  rgba(255,255,255,0.16);
+
+  --glass-hi-bg:      rgba(255,255,255,0.13);
+  --glass-hi-border:  rgba(255,255,255,0.22);
+
+  /* Text */
+  --t1: rgba(255,255,255,0.93);
+  --t2: rgba(255,255,255,0.54);
+  --t3: rgba(255,255,255,0.28);
+
+  /* Radius */
+  --r-sm:  8px;
+  --r-md:  12px;
+  --r-lg:  16px;
+  --r-xl:  20px;
+  --r-2xl: 28px;
+
+  /* Spacing */
+  --nav-h: 62px;
+}
+
+/* ═══ Reset ═══ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--bg-deep);
+  color:var(--t1);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ═══ Animated Background ═══ */
+.bg-canvas{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
+.orb{
+  position:absolute;border-radius:50%;
+  filter:blur(90px);opacity:0.28;
+  animation:orbDrift 24s ease-in-out infinite alternate;
+}
+.orb-1{width:700px;height:700px;background:radial-gradient(circle,var(--violet),transparent 70%);top:-220px;left:-180px;animation-delay:0s;}
+.orb-2{width:550px;height:550px;background:radial-gradient(circle,var(--cyan),transparent 70%);bottom:-180px;right:-120px;animation-delay:-8s;}
+.orb-3{width:460px;height:460px;background:radial-gradient(circle,var(--indigo),transparent 70%);top:45%;left:38%;transform:translate(-50%,-50%);animation-delay:-16s;}
+.orb-4{width:300px;height:300px;background:radial-gradient(circle,var(--rose),transparent 70%);bottom:20%;left:15%;opacity:0.15;animation-delay:-4s;}
+
+@keyframes orbDrift{
+  0%{transform:translate(0,0) scale(1);}
+  33%{transform:translate(30px,-20px) scale(1.05);}
+  66%{transform:translate(-15px,25px) scale(0.97);}
+  100%{transform:translate(45px,10px) scale(1.09);}
+}
+
+/* Grid noise overlay */
+.bg-grid{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px);
+  background-size:48px 48px;
+}
+
+/* ═══ Screen System ═══ */
+.screen{
+  position:absolute;inset:0;z-index:1;
+  display:none;opacity:0;
+  transition:opacity 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.screen.active{display:flex;opacity:1;}
+@keyframes screenIn{
+  from{opacity:0;transform:translateY(10px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.screen.fade-in{animation:screenIn 0.38s cubic-bezier(0.4,0,0.2,1) forwards;}
+
+/* ═══ Glass Surfaces ═══ */
+.glass{
+  background:var(--glass-bg);
+  border:1px solid var(--glass-border);
+  backdrop-filter:blur(var(--glass-blur));
+  -webkit-backdrop-filter:blur(var(--glass-blur));
+  box-shadow:var(--glass-shadow);
+  border-radius:var(--r-lg);
+}
+.glass-el{
+  background:var(--glass-el-bg);
+  border:1px solid var(--glass-el-border);
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  box-shadow:0 4px 24px rgba(0,0,0,0.4);
+  border-radius:var(--r-md);
+}
+.glass-hi{
+  background:var(--glass-hi-bg);
+  border:1px solid var(--glass-hi-border);
+  backdrop-filter:blur(28px);
+  -webkit-backdrop-filter:blur(28px);
+  border-radius:var(--r-lg);
+}
+
+/* ═══ Navigation ═══ */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:var(--nav-h);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;
+  background:rgba(7,7,16,0.72);
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  backdrop-filter:blur(28px);
+  -webkit-backdrop-filter:blur(28px);
+}
+.nav-logo{
+  display:flex;align-items:center;gap:9px;
+  font-size:18px;font-weight:800;letter-spacing:-0.5px;
+  text-decoration:none;color:var(--t1);
+}
+.sphere-icon{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  background:conic-gradient(from 180deg,var(--violet),var(--cyan),var(--indigo),var(--violet));
+  box-shadow:0 0 12px rgba(124,58,237,0.6);
+  position:relative;overflow:hidden;
+}
+.sphere-icon::after{
+  content:'';position:absolute;
+  width:60%;height:30%;
+  background:rgba(255,255,255,0.22);
+  border-radius:50%;
+  top:18%;left:20%;
+  transform:rotate(-15deg);
+}
+.nav-tabs{display:flex;gap:2px;}
+.nav-tab{
+  padding:6px 14px;border-radius:var(--r-sm);cursor:pointer;
+  color:var(--t2);font-size:13px;font-weight:500;
+  border:none;background:transparent;
+  transition:all 0.18s;letter-spacing:-0.1px;
+}
+.nav-tab:hover{background:rgba(255,255,255,0.06);color:var(--t1);}
+.nav-tab.active{background:rgba(124,58,237,0.22);color:var(--violet-light);border:1px solid rgba(124,58,237,0.28);}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.avatar{
+  width:32px;height:32px;border-radius:50%;cursor:pointer;
+  background:linear-gradient(135deg,var(--violet),var(--cyan));
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;
+  box-shadow:0 0 0 2px rgba(124,58,237,0.3);
+}
+
+/* ═══ Buttons ═══ */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:10px 20px;border-radius:var(--r-md);
+  font-size:13px;font-weight:600;cursor:pointer;
+  border:none;transition:all 0.2s;text-decoration:none;
+  letter-spacing:-0.1px;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--violet),var(--indigo));
+  color:#fff;
+  box-shadow:0 4px 20px rgba(124,58,237,0.4);
+}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(124,58,237,0.55);}
+.btn-primary:active{transform:translateY(0);}
+.btn-ghost{
+  background:var(--glass-el-bg);
+  border:1px solid var(--glass-el-border);
+  color:var(--t1);
+  backdrop-filter:blur(12px);
+}
+.btn-ghost:hover{background:var(--glass-hi-bg);}
+.btn-cyan{
+  background:linear-gradient(135deg,var(--cyan),#0891b2);
+  color:#fff;box-shadow:0 4px 20px rgba(6,182,212,0.38);
+}
+.btn-cyan:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(6,182,212,0.5);}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:var(--r-sm);}
+.btn-xs{padding:5px 10px;font-size:11px;border-radius:6px;}
+.btn-danger{background:linear-gradient(135deg,var(--rose),#be185d);color:#fff;box-shadow:0 4px 16px rgba(244,63,94,0.35);}
+
+/* ═══ Tags / Badges ═══ */
+.tag{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;border-radius:100px;
+  font-size:11px;font-weight:600;letter-spacing:0.1px;
+}
+.tag-violet{background:rgba(124,58,237,0.2);color:#c4b5fd;border:1px solid rgba(124,58,237,0.3);}
+.tag-cyan  {background:rgba(6,182,212,0.15);color:var(--cyan-light);border:1px solid rgba(6,182,212,0.28);}
+.tag-amber {background:rgba(245,158,11,0.15);color:var(--amber-light);border:1px solid rgba(245,158,11,0.28);}
+.tag-green {background:rgba(16,185,129,0.15);color:var(--green-light);border:1px solid rgba(16,185,129,0.28);}
+.tag-rose  {background:rgba(244,63,94,0.15);color:var(--rose-light);border:1px solid rgba(244,63,94,0.28);}
+.tag-blue  {background:rgba(59,130,246,0.15);color:#93c5fd;border:1px solid rgba(59,130,246,0.28);}
+
+/* ═══ Inputs ═══ */
+.input{
+  width:100%;padding:10px 14px;
+  border-radius:var(--r-md);
+  background:var(--glass-el-bg);
+  border:1px solid var(--glass-el-border);
+  color:var(--t1);font-size:13px;font-family:inherit;
+  backdrop-filter:blur(12px);outline:none;
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+.input:focus{border-color:rgba(124,58,237,0.5);box-shadow:0 0 0 3px rgba(124,58,237,0.12);}
+.input::placeholder{color:var(--t3);}
+select.input{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.4)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;}
+textarea.input{resize:none;}
+.label{
+  font-size:11px;font-weight:700;color:var(--t2);
+  margin-bottom:6px;display:block;
+  text-transform:uppercase;letter-spacing:0.6px;
+}
+
+/* ═══ Layout Helpers ═══ */
+.content-area{
+  flex:1;overflow-y:auto;
+  padding:calc(var(--nav-h) + 24px) 28px 40px;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.08) transparent;
+}
+.content-area::-webkit-scrollbar{width:4px;}
+.content-area::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.09);border-radius:2px;}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.divider{height:1px;background:var(--glass-border);margin:18px 0;}
+
+/* ═══ Stat Card ═══ */
+.stat-card{padding:20px 22px;}
+.stat-value{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1.1;}
+.stat-label{font-size:11px;color:var(--t2);margin-top:3px;text-transform:uppercase;letter-spacing:0.4px;}
+.stat-delta{font-size:12px;margin-top:8px;}
+.up{color:var(--green-light);}
+.down{color:var(--rose-light);}
+
+/* ═══ Progress ═══ */
+.progress-track{height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--violet),var(--cyan));}
+
+/* ═══ Step Indicator ═══ */
+.steps{display:flex;align-items:center;margin-bottom:32px;}
+.step-item{display:flex;align-items:center;gap:8px;}
+.step-dot{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;flex-shrink:0;
+  transition:all 0.3s;
+}
+.step-dot.done{background:linear-gradient(135deg,var(--violet),var(--cyan));color:#fff;box-shadow:0 0 12px rgba(124,58,237,0.5);}
+.step-dot.active{background:var(--glass-el-bg);border:2px solid var(--violet);color:var(--violet-light);}
+.step-dot.idle{background:var(--glass-el-bg);border:1px solid var(--glass-el-border);color:var(--t3);}
+.step-label{font-size:12px;font-weight:600;white-space:nowrap;}
+.step-label.active{color:var(--t1);}
+.step-label.idle{color:var(--t3);}
+.step-line{flex:1;height:1px;background:var(--glass-border);min-width:20px;max-width:56px;}
+.step-line.done{background:linear-gradient(90deg,var(--violet),var(--cyan));}
+
+/* ═══ Sidebar ═══ */
+.sidebar{
+  width:216px;flex-shrink:0;
+  padding:calc(var(--nav-h) + 16px) 12px 24px;
+  border-right:1px solid rgba(255,255,255,0.06);
+  display:flex;flex-direction:column;gap:2px;
+  overflow-y:auto;
+}
+.sidebar-label{
+  font-size:10px;font-weight:700;color:var(--t3);
+  text-transform:uppercase;letter-spacing:0.8px;
+  padding:0 10px;margin:12px 0 6px;
+}
+.sidebar-item{
+  padding:8px 12px;border-radius:var(--r-sm);cursor:pointer;
+  display:flex;align-items:center;gap:9px;
+  font-size:13px;font-weight:500;color:var(--t2);
+  transition:all 0.15s;
+}
+.sidebar-item:hover{background:var(--glass-el-bg);color:var(--t1);}
+.sidebar-item.active{background:rgba(124,58,237,0.18);color:var(--violet-light);font-weight:600;}
+.sidebar-icon{font-size:15px;width:18px;text-align:center;}
+.notif-dot{width:7px;height:7px;border-radius:50%;background:var(--rose);margin-left:auto;flex-shrink:0;}
+
+/* ═══ Opportunity Card ═══ */
+.opp-card{padding:18px;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;}
+.opp-card:hover{transform:translateY(-3px);box-shadow:0 20px 56px rgba(0,0,0,0.65);}
+
+/* ═══ Deal Row ═══ */
+.deal-row{
+  padding:13px 16px;display:flex;align-items:center;gap:12px;
+  border-radius:var(--r-md);margin-bottom:6px;
+  background:var(--glass-bg);border:1px solid var(--glass-border);
+  transition:background 0.18s;cursor:pointer;
+}
+.deal-row:hover{background:var(--glass-el-bg);}
+
+/* ═══ Pill Tabs ═══ */
+.pill-tabs{
+  display:flex;gap:4px;padding:4px;
+  background:var(--glass-bg);border:1px solid var(--glass-border);
+  border-radius:var(--r-md);width:fit-content;margin-bottom:22px;
+}
+.pill-tab{
+  padding:6px 16px;border-radius:var(--r-sm);cursor:pointer;
+  font-size:12px;font-weight:500;color:var(--t2);
+  border:none;background:transparent;transition:all 0.2s;
+}
+.pill-tab.active{background:var(--glass-el-bg);color:var(--t1);font-weight:600;border:1px solid var(--glass-el-border);}
+
+/* ═══ Section Headings ═══ */
+.section-title{font-size:20px;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px;}
+.section-sub{font-size:13px;color:var(--t2);margin-bottom:20px;}
+
+/* ═══ Toast ═══ */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  z-index:999;padding:12px 24px;border-radius:var(--r-md);
+  font-size:13px;font-weight:600;
+  background:rgba(16,185,129,0.18);border:1px solid rgba(16,185,129,0.3);
+  color:var(--green-light);backdrop-filter:blur(20px);
+  box-shadow:0 8px 40px rgba(0,0,0,0.5);
+  opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;
+}
+.toast.show{opacity:1;}
+
+/* ═══ Skeleton loader ═══ */
+@keyframes shimmer{
+  from{background-position:-400px 0;}
+  to{background-position:400px 0;}
+}
+.skeleton{
+  background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%);
+  background-size:800px 100%;
+  animation:shimmer 1.6s infinite;
+  border-radius:6px;
+}
+
+/* ═══ SVG Chart ═══ */
+.chart-wrapper{position:relative;overflow:hidden;}
+.chart-tooltip{
+  position:absolute;background:var(--glass-hi-bg);border:1px solid var(--glass-hi-border);
+  backdrop-filter:blur(16px);padding:8px 12px;border-radius:var(--r-sm);
+  font-size:12px;font-weight:600;pointer-events:none;white-space:nowrap;
+  opacity:0;transition:opacity 0.15s;
+}
+
+/* ═══ Credit Card ═══ */
+.credit-card{
+  width:300px;height:178px;border-radius:16px;
+  background:linear-gradient(135deg,#1a1040 0%,#2d1b69 50%,#0c1a3d 100%);
+  border:1px solid rgba(255,255,255,0.18);
+  box-shadow:0 20px 60px rgba(0,0,0,0.6),0 0 0 1px rgba(124,58,237,0.2);
+  padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between;
+  position:relative;overflow:hidden;
+  backdrop-filter:blur(12px);
+}
+.credit-card::before{
+  content:'';position:absolute;
+  width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(124,58,237,0.3),transparent 70%);
+  top:-60px;right:-60px;
+}
+.card-chip{
+  width:34px;height:26px;border-radius:5px;
+  background:linear-gradient(135deg,#d4af37,#f5d370,#c8a400);
+  border:1px solid rgba(255,255,255,0.2);
+  position:relative;overflow:hidden;
+}
+.card-chip::after{
+  content:'';position:absolute;inset:0;
+  background:
+    linear-gradient(rgba(0,0,0,0.1) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,0,0,0.1) 1px,transparent 1px);
+  background-size:8px 8px;
+}
+.card-number{
+  font-size:14px;font-weight:600;letter-spacing:3px;
+  color:rgba(255,255,255,0.85);font-family:'Courier New',monospace;
+}
+.card-meta{display:flex;justify-content:space-between;align-items:flex-end;}
+.card-name{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.8);}
+.card-exp{font-size:10px;color:rgba(255,255,255,0.55);}
+
+/* ═══ AI Chat Bubbles ═══ */
+.chat-bubble{
+  max-width:75%;padding:10px 14px;
+  border-radius:14px;font-size:13px;line-height:1.55;
+}
+.chat-bubble.ai{
+  background:rgba(124,58,237,0.18);border:1px solid rgba(124,58,237,0.25);
+  border-bottom-left-radius:4px;color:var(--t1);
+  box-shadow:0 2px 16px rgba(124,58,237,0.15);
+}
+.chat-bubble.user{
+  background:var(--glass-el-bg);border:1px solid var(--glass-el-border);
+  border-bottom-right-radius:4px;margin-left:auto;
+}
+.typing-dot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--violet-light);margin:0 2px;
+  animation:typingBounce 1.2s ease infinite;
+}
+.typing-dot:nth-child(2){animation-delay:0.2s;}
+.typing-dot:nth-child(3){animation-delay:0.4s;}
+@keyframes typingBounce{
+  0%,60%,100%{transform:translateY(0);}
+  30%{transform:translateY(-5px);}
+}
+
+/* ═══ Table ═══ */
+.data-table{width:100%;border-collapse:collapse;}
+.data-table th{
+  font-size:10px;font-weight:700;color:var(--t3);
+  text-transform:uppercase;letter-spacing:0.8px;
+  padding:10px 14px;text-align:left;
+  border-bottom:1px solid var(--glass-border);
+}
+.data-table td{padding:12px 14px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);}
+.data-table tr:hover td{background:rgba(255,255,255,0.025);}
+.data-table tr:last-child td{border-bottom:none;}
+
+/* ═══ Mobile Nav ═══ */
+.bottom-nav{
+  position:absolute;bottom:0;left:0;right:0;
+  height:70px;z-index:50;
+  background:rgba(7,7,16,0.85);
+  border-top:1px solid rgba(255,255,255,0.08);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  display:flex;align-items:center;justify-content:space-around;
+  padding:0 8px 10px;
+}
+.bottom-nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:6px 12px;border-radius:var(--r-md);cursor:pointer;
+  transition:all 0.18s;min-width:56px;
+}
+.bottom-nav-item:hover{background:var(--glass-el-bg);}
+.bottom-nav-item.active{background:rgba(124,58,237,0.15);}
+.bottom-nav-item svg{width:22px;height:22px;}
+.bottom-nav-item span{font-size:10px;font-weight:600;color:var(--t2);}
+.bottom-nav-item.active span{color:var(--violet-light);}
+.bottom-nav-item.active svg path,.bottom-nav-item.active svg rect,.bottom-nav-item.active svg circle{stroke:var(--violet-light);}
+
+/* ═══ Responsive ═══ */
+@media(max-width:900px){
+  .grid-4{grid-template-columns:repeat(2,1fr);}
+  .grid-3{grid-template-columns:repeat(2,1fr);}
+  .sidebar{width:180px;}
+}
+@media(max-width:600px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+}
+
+/* ═══ Glow Ring (Pricing) ═══ */
+.glow-ring{
+  position:relative;
+  box-shadow:0 0 0 2px var(--violet),0 0 40px rgba(124,58,237,0.35),0 8px 48px rgba(0,0,0,0.6);
+}
+.recommended-badge{
+  position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,var(--violet),var(--indigo));
+  color:#fff;font-size:10px;font-weight:700;
+  padding:3px 12px;border-radius:100px;
+  white-space:nowrap;letter-spacing:0.3px;
+  box-shadow:0 4px 12px rgba(124,58,237,0.5);
+}
+
+/* ═══ Gradient Text ═══ */
+.grad-text{
+  background:linear-gradient(135deg,#fff 20%,var(--violet-light) 50%,var(--cyan-light) 80%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+@keyframes gradShimmer{
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
+.grad-shimmer{
+  background:linear-gradient(135deg,#fff 0%,var(--violet-light) 30%,var(--cyan-light) 60%,#fff 100%);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:gradShimmer 4s linear infinite;
+}
+
+/* ═══ Floating Feature Cards ═══ */
+@keyframes floatUp{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-8px);}
+}
+.float-card{animation:floatUp 5s ease-in-out infinite;}
+.float-card:nth-child(2){animation-delay:-1.5s;}
+.float-card:nth-child(3){animation-delay:-3s;}
+
+/* ═══ Hero section ═══ */
+.hero-wrap{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:80px 32px 60px;text-align:center;
+  position:relative;
+}
+.hero-eyebrow{
+  font-size:11px;font-weight:700;letter-spacing:3px;
+  text-transform:uppercase;color:var(--cyan);
+  margin-bottom:20px;opacity:0.9;
+}
+.hero-title{
+  font-size:clamp(44px,6.5vw,80px);
+  font-weight:900;letter-spacing:-3px;
+  line-height:1.05;margin-bottom:22px;
+}
+.hero-sub{
+  font-size:17px;color:var(--t2);max-width:520px;
+  line-height:1.65;margin-bottom:40px;
+}
+.hero-ctas{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:64px;}
+.hero-stats{
+  display:flex;gap:0;
+  background:var(--glass-bg);border:1px solid var(--glass-border);
+  backdrop-filter:blur(20px);border-radius:var(--r-xl);overflow:hidden;
+}
+.hero-stat{
+  padding:18px 32px;text-align:center;
+  border-right:1px solid var(--glass-border);
+}
+.hero-stat:last-child{border-right:none;}
+.hero-stat-value{font-size:24px;font-weight:800;letter-spacing:-0.8px;}
+.hero-stat-label{font-size:11px;color:var(--t2);margin-top:2px;}
+
+/* Feature cards around hero */
+.hero-features{
+  position:absolute;
+  display:flex;flex-direction:column;gap:12px;
+}
+.hero-features.left{left:3%;top:50%;transform:translateY(-50%);}
+.hero-features.right{right:3%;top:50%;transform:translateY(-50%);}
+.feat-card{
+  padding:12px 16px;
+  background:var(--glass-bg);border:1px solid var(--glass-border);
+  backdrop-filter:blur(20px);border-radius:var(--r-lg);
+  width:180px;text-align:left;
+}
+.feat-card-icon{font-size:18px;margin-bottom:6px;}
+.feat-card-title{font-size:12px;font-weight:700;margin-bottom:2px;}
+.feat-card-desc{font-size:11px;color:var(--t2);line-height:1.4;}
+
+/* ═══ Admin Table Row ═══ */
+.admin-row-even td{background:rgba(255,255,255,0.018);}
+</style>
+</head>
+<body>
+
+<!-- Background -->
+<div class="bg-canvas">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="orb orb-4"></div>
+</div>
+<div class="bg-grid"></div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 1 — LANDING / MARKETING
+══════════════════════════════════════════════════════ -->
+<div class="screen active fade-in" id="screen-landing" style="flex-direction:column;">
+  <nav class="nav">
+    <div class="nav-logo">
+      <div class="sphere-icon"></div>
+      Sphere
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab">Product</button>
+      <button class="nav-tab">Pricing</button>
+      <button class="nav-tab">For Brands</button>
+      <button class="nav-tab">For Communities</button>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-ghost btn-sm" onclick="navigate('screen-brand-onboard-1')">Sign in</button>
+      <button class="btn btn-primary btn-sm" onclick="navigate('screen-brand-onboard-1')">Get started</button>
+    </div>
+  </nav>
+
+  <div class="hero-wrap">
+    <!-- Floating feature cards left -->
+    <div class="hero-features left">
+      <div class="glass feat-card float-card">
+        <div class="feat-card-icon">🤖</div>
+        <div class="feat-card-title">AI Negotiation</div>
+        <div class="feat-card-desc">Closes deals while you sleep</div>
+      </div>
+      <div class="glass feat-card float-card">
+        <div class="feat-card-icon">⚡</div>
+        <div class="feat-card-title">Real-time Matching</div>
+        <div class="feat-card-desc">From 12,400+ verified communities</div>
+      </div>
+    </div>
+
+    <!-- Floating feature cards right -->
+    <div class="hero-features right">
+      <div class="glass feat-card float-card">
+        <div class="feat-card-icon">🛡️</div>
+        <div class="feat-card-title">Brand Safety</div>
+        <div class="feat-card-desc">Every community is vetted</div>
+      </div>
+      <div class="glass feat-card float-card">
+        <div class="feat-card-icon">📊</div>
+        <div class="feat-card-title">Live Analytics</div>
+        <div class="feat-card-desc">Track ROI across all channels</div>
+      </div>
+    </div>
+
+    <div class="hero-eyebrow">Now in public beta · 2,100+ brands</div>
+    <h1 class="hero-title">
+      <span class="grad-shimmer">The AI marketplace</span><br/>
+      for community deals
+    </h1>
+    <p class="hero-sub">
+      Connect your brand with the most engaged niche communities on the internet — Reddit, Discord, Newsletters, Facebook, Telegram — powered by AI negotiation.
+    </p>
+    <div class="hero-ctas">
+      <button class="btn btn-primary" style="padding:13px 28px;font-size:14px;" onclick="navigate('screen-brand-onboard-1')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+        I'm a Brand
+      </button>
+      <button class="btn btn-ghost" style="padding:13px 28px;font-size:14px;" onclick="navigate('screen-co-onboard-1')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+        I'm a Community Owner
+      </button>
+    </div>
+
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-value grad-text">12,400+</div>
+        <div class="hero-stat-label">Communities</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value grad-text">$4.2M</div>
+        <div class="hero-stat-label">Deals Closed</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value grad-text">98%</div>
+        <div class="hero-stat-label">AI Match Rate</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value grad-text">4.9★</div>
+        <div class="hero-stat-label">Avg. Rating</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Value props strip -->
+  <div style="position:relative;z-index:2;border-top:1px solid var(--glass-border);background:rgba(7,7,16,0.6);backdrop-filter:blur(12px);padding:20px 40px;display:flex;gap:40px;justify-content:center;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:18px;">✓</span>
+      <span style="font-size:13px;color:var(--t2);">No upfront commitment</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:18px;">✓</span>
+      <span style="font-size:13px;color:var(--t2);">AI handles negotiation</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:18px;">✓</span>
+      <span style="font-size:13px;color:var(--t2);">Transparent pricing</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:18px;">✓</span>
+      <span style="font-size:13px;color:var(--t2);">Cancel anytime</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 2 — BRAND ONBOARDING Step 1/3 (Account)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-brand-onboard-1">
+  <nav class="nav">
+    <div class="nav-logo"><div class="sphere-icon"></div>Sphere</div>
+    <div style="font-size:12px;color:var(--t2);letter-spacing:0.3px;">Brand Onboarding</div>
+    <button class="btn btn-ghost btn-sm" onclick="navigate('screen-landing')">← Back</button>
+  </nav>
+  <div class="content-area" style="display:flex;align-items:center;justify-content:center;min-height:100%;">
+    <div class="glass" style="width:100%;max-width:460px;padding:36px;">
+      <div class="steps">
+        <div class="step-item"><div class="step-dot active">1</div><span class="step-label active">Account</span></div>
+        <div class="step-line"></div>
+        <div class="step-item"><div class="step-dot idle">2</div><span class="step-label idle">Brand Profile</span></div>
+        <div class="step-line"></div>
+        <div class="step-item"><div class="step-dot idle">3</div><span class="step-label idle">Choose Plan</span></div>
+      </div>
+      <h2 style="font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;">Create your account</h2>
+      <p style="color:var(--t2);font-size:13px;margin-bottom:28px;">Join 2,100+ brands already growing on Sphere</p>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div><label class="label">Full Name</label><input class="input" placeholder="Alex Johnson"/></div>
+        <div><label class="label">Work Email</label><input class="input" type="email" placeholder="alex@yourbrand.com"/></div>
+        <div><label class="label">Password</label><input class="input" type="password" placeholder="Min. 8 characters"/></div>
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-top:2px;">
+          <input type="checkbox" id="tos" checked style="margin-top:3px;accent-color:var(--violet);width:14px;height:14px;"/>
+          <label for="tos" style="font-size:12px;color:var(--t2);cursor:pointer;line-height:1.5;">I agree to the <span style="color:var(--violet-light);text-decoration:underline;cursor:pointer;">Terms of Service</span> and <span style="color:var(--violet-light);text-decoration:underline;cursor:pointer;">Privacy Policy</span></label>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:6px;" onclick="navigate('screen-brand-onboard-2')">Continue →</button>
+        <div style="display:flex;align-items:center;gap:10px;margin:-2px 0;">
+          <div class="divider" style="flex:1;margin:0;"></div>
+          <span style="font-size:11px;color:var(--t3);">or</span>
+          <div class="divider" style="flex:1;margin:0;"></div>
+        </div>
+        <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="navigate('screen-brand-onboard-2')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          Continue with Google
+        </button>
+      </div>
+      <p style="text-align:center;font-size:12px;color:var(--t2);margin-top:18px;">Already have an account? <span style="color:var(--violet-light);cursor:pointer;text-decoration:underline;" onclick="navigate('screen-brand-dashboard')">Sign in</span></p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 3 — BRAND ONBOARDING Step 2/3 (Brand Profile)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-brand-onboard-2">
+  <nav class="nav">
+    <div class="nav-logo"><div class="sphere-icon"></div>Sphere</div>
+    <div style="font-size:12px;color:var(--t2);">Brand Onboarding</div>
+    <button class="btn btn-ghost btn-sm" onclick="navigate('screen-brand-onboard-1')">← Back</button>
+  </nav>
+  <div class="content-area" style="display:flex;align-items:center;justify-content:center;min-height:100%;">
+    <div class="glass" style="width:100%;max-width:520px;padding:36px;">
+      <div class="steps">
+        <div class="step-item"><div class="step-dot done">✓</div><span class="step-label">Account</span></div>
+        <div class="step-line done"></div>
+        <div class="step-item"><div class="step-dot active">2</div><span class="step-label active">Brand Profile</span></div>
+        <div class="step-line"></div>
+        <div class="step-item"><div class="step-dot idle">3</div><span class="step-label idle">Choose Plan</span></div>
+      </div>
+      <h2 style="font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;">Tell us about your brand</h2>
+      <p style="color:var(--t2);font-size:13px;margin-bottom:28px;">Our AI will use this to find your ideal communities</p>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="grid-2">
+          <div><label class="label">Brand Name</label><input class="input" value="Luminary Skincare"/></div>
+          <div><label class="label">Industry</label>
+            <select class="input"><option>Beauty &amp; Skincare</option><option>Fashion</option><option>Tech</option><option>Food &amp; Beverage</option><option>Health &amp; Wellness</option></select>
+          </div>
+        </div>
+        <div><label class="label">Website</label><input class="input" value="https://luminaryskin.co"/></div>
+        <div><label class="label">Monthly Campaign Budget</label>
+          <select class="input" style="max-width:220px;">
+            <option>$1,000 – $5,000</option><option selected>$5,000 – $20,000</option><option>$20,000 – $50,000</option><option>$50,000+</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">Target Audience</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <span class="tag tag-violet" style="cursor:pointer;">Women 25–35 ×</span>
+            <span class="tag tag-cyan" style="cursor:pointer;">Health Conscious ×</span>
+            <span class="tag tag-amber" style="cursor:pointer;">+ Add Tag</span>
+          </div>
+          <input class="input" placeholder="Describe your ideal customer…"/>
+        </div>
+        <div>
+          <label class="label">Preferred Platforms</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--t2);"><input type="checkbox" checked style="accent-color:var(--violet);"/>Reddit</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--t2);"><input type="checkbox" checked style="accent-color:var(--violet);"/>Newsletter</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--t2);"><input type="checkbox" style="accent-color:var(--violet);"/>Discord</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--t2);"><input type="checkbox" style="accent-color:var(--violet);"/>Facebook</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--t2);"><input type="checkbox" style="accent-color:var(--violet);"/>Telegram</label>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px;" onclick="navigate('screen-brand-onboard-3')">Continue →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 4 — BRAND ONBOARDING Step 3/3 (Choose Plan)
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-brand-onboard-3">
+  <nav class="nav">
+    <div class="nav-logo"><div class="sphere-icon"></div>Sphere</div>
+    <div style="font-size:12px;color:var(--t2);">Brand Onboarding</div>
+    <button class="btn btn-ghost btn-sm" onclick="navigate('screen-brand-onboard-2')">← Back</button>
+  </nav>
+  <div class="content-area" style="display:flex;align-items:center;justify-content:center;min-height:100%;">
+    <div style="width:100%;max-width:800px;">
+      <div class="steps" style="justify-content:center;margin-bottom:24px;">
+        <div class="step-item"><div class="step-dot done">✓</div><span class="step-label">Account</span></div>
+        <div class="step-line done"></div>
+        <div class="step-item"><div class="step-dot done">✓</div><span class="step-label">Brand Profile</span></div>
+        <div class="step-line done"></div>
+        <div class="step-item"><div class="step-dot active">3</div><span class="step-label active">Choose Plan</span></div>
+      </div>
+      <h2 style="font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;text-align:center;">Choose your plan</h2>
+      <p style="color:var(--t2);font-size:13px;margin-bottom:32px;text-align:center;">Upgrade or downgrade anytime. No contracts.</p>
+
+      <div class="grid-3" style="gap:20px;align-items:start;">
+        <!-- Starter -->
+        <div class="glass" style="padding:28px;position:relative;">
+          <div style="font-size:13px;font-weight:700;color:var(--t2);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Starter</div>
+          <div style="font-size:32px;font-weight:900;letter-spacing:-1px;margin-bottom:4px;">$99<span style="font-size:16px;font-weight:400;color:var(--t2);">/mo</span></div>
+          <div style="font-size:12px;color:var(--t2);margin-bottom:20px;">Perfect for testing the waters</div>
+          <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:24px;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--green-light);">✓</span> 5 active deals/month</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--green-light);">✓</span> AI matching (basic)</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--green-light);">✓</span> Email support</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t3);"><span>×</span> AI auto-negotiation</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t3);"><span>×</span> Analytics dashboard</div>
+          </div>
+          <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="onboardingComplete()">Get Started</button>
+        </div>
+
+        <!-- Growth — Recommended -->
+        <div class="glass glow-ring" style="padding:28px;position:relative;margin-top:-8px;">
+          <div class="recommended-badge">Most Popular</div>
+          <div style="font-size:13px;font-weight:700;color:var(--violet-light);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Growth</div>
+          <div style="font-size:32px;font-weight:900;letter-spacing:-1px;margin-bottom:4px;" class="grad-text">$299<span style="font-size:16px;font-weight:400;color:var(--t2);">/mo</span></div>
+          <div style="font-size:12px;color:var(--t2);margin-bottom:20px;">Everything you need to scale</div>
+          <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:24px;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--green-light);">✓</span> 25 active deals/month</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--green-light);">✓</span> AI matching + recommendations</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--green-light);">✓</span> <strong>AI auto-negotiation</strong></div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--green-light);">✓</span> Full analytics dashboard</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--green-light);">✓</span> Priority support</div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="onboardingComplete()">Start Free Trial →</button>
+        </div>
+
+        <!-- Enterprise -->
+        <div class="glass" style="padding:28px;position:relative;">
+          <div style="font-size:13px;font-weight:700;color:var(--cyan-light);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Enterprise</div>
+          <div style="font-size:32px;font-weight:900;letter-spacing:-1px;margin-bottom:4px;">Custom</div>
+          <div style="font-size:12px;color:var(--t2);margin-bottom:20px;">For teams with serious volume</div>
+          <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:24px;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--green-light);">✓</span> Unlimited deals</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--green-light);">✓</span> White-glove onboarding</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--green-light);">✓</span> Dedicated account manager</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--green-light);">✓</span> Custom integrations + API</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--green-light);">✓</span> SLA + 99.9% uptime</div>
+          </div>
+          <button class="btn btn-cyan" style="width:100%;justify-content:center;" onclick="showToast('Sales team will reach out within 24h')">Contact Sales</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 5 — COMMUNITY ONBOARDING Step 1/3
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-co-onboard-1">
+  <nav class="nav">
+    <div class="nav-logo"><div class="sphere-icon"></div>Sphere</div>
+    <div style="font-size:12px;color:var(--t2);">Community Onboarding</div>
+    <button class="btn btn-ghost btn-sm" onclick="navigate('screen-landing')">← Back</button>
+  </nav>
+  <div class="content-area" style="display:flex;align-items:center;justify-content:center;min-height:100%;">
+    <div class="glass" style="width:100%;max-width:480px;padding:36px;">
+      <div class="steps">
+        <div class="step-item"><div class="step-dot active">1</div><span class="step-label active">Profile</span></div>
+        <div class="step-line"></div>
+        <div class="step-item"><div class="step-dot idle">2</div><span class="step-label idle">Categories</span></div>
+        <div class="step-line"></div>
+        <div class="step-item"><div class="step-dot idle">3</div><span class="step-label idle">Monetization</span></div>
+      </div>
+      <h2 style="font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;">Set up your community profile</h2>
+      <p style="color:var(--t2);font-size:13px;margin-bottom:28px;">Start earning from your community in minutes</p>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div><label class="label">Community Name</label><input class="input" value="r/SkincareAddiction"/></div>
+        <div><label class="label">Platform</label>
+          <select class="input"><option>Reddit</option><option>Discord</option><option>Facebook Group</option><option>Newsletter</option><option>Telegram</option><option>Other</option></select>
+        </div>
+        <div><label class="label">Community URL / Link</label><input class="input" value="https://reddit.com/r/SkincareAddiction"/></div>
+        <div><label class="label">Your Role</label>
+          <select class="input"><option>Owner / Moderator</option><option>Admin</option><option>Manager</option></select>
+        </div>
+        <div><label class="label">Brief Description</label>
+          <textarea class="input" rows="3">A community for skincare enthusiasts to share tips, routines, product reviews, and science-backed skincare information.</textarea>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:6px;" onclick="navigate('screen-co-onboard-2')">Continue →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 6 — COMMUNITY ONBOARDING Step 2/3
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-co-onboard-2">
+  <nav class="nav">
+    <div class="nav-logo"><div class="sphere-icon"></div>Sphere</div>
+    <div style="font-size:12px;color:var(--t2);">Community Onboarding</div>
+    <button class="btn btn-ghost btn-sm" onclick="navigate('screen-co-onboard-1')">← Back</button>
+  </nav>
+  <div class="content-area" style="display:flex;align-items:center;justify-content:center;min-height:100%;">
+    <div class="glass" style="width:100%;max-width:520px;padding:36px;">
+      <div class="steps">
+        <div class="step-item"><div class="step-dot done">✓</div><span class="step-label">Profile</span></div>
+        <div class="step-line done"></div>
+        <div class="step-item"><div class="step-dot active">2</div><span class="step-label active">Categories</span></div>
+        <div class="step-line"></div>
+        <div class="step-item"><div class="step-dot idle">3</div><span class="step-label idle">Monetization</span></div>
+      </div>
+      <h2 style="font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;">What's your community about?</h2>
+      <p style="color:var(--t2);font-size:13px;margin-bottom:28px;">Select all that apply — more categories = more deal opportunities</p>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <label class="label">Primary Category</label>
+          <select class="input"><option>Beauty &amp; Skincare</option><option>Health &amp; Wellness</option><option>Finance</option><option>Tech</option><option>Gaming</option><option>Food</option><option>Fashion</option></select>
+        </div>
+        <div>
+          <label class="label">Sub-niches (select all that apply)</label>
+          <div id="niche-tags" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span class="tag tag-violet niche-tag selected" onclick="toggleNiche(this)" style="cursor:pointer;">Skincare Science</span>
+            <span class="tag tag-violet niche-tag selected" onclick="toggleNiche(this)" style="cursor:pointer;">Anti-aging</span>
+            <span class="tag tag-cyan niche-tag" onclick="toggleNiche(this)" style="cursor:pointer;">Dermatology</span>
+            <span class="tag tag-cyan niche-tag" onclick="toggleNiche(this)" style="cursor:pointer;">Acne Treatment</span>
+            <span class="tag niche-tag" onclick="toggleNiche(this)" style="cursor:pointer;background:var(--glass-el-bg);border:1px solid var(--glass-el-border);">Clean Beauty</span>
+            <span class="tag niche-tag" onclick="toggleNiche(this)" style="cursor:pointer;background:var(--glass-el-bg);border:1px solid var(--glass-el-border);">Natural Ingredients</span>
+            <span class="tag niche-tag" onclick="toggleNiche(this)" style="cursor:pointer;background:var(--glass-el-bg);border:1px solid var(--glass-el-border);">SPF &amp; Sun Care</span>
+            <span class="tag niche-tag" onclick="toggleNiche(this)" style="cursor:pointer;background:var(--glass-el-bg);border:1px solid var(--glass-el-border);">Cruelty-free</span>
+          </div>
+        </div>
+        <div>
+          <label class="label">Content Types Your Community Engages With</label>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><input type="checkbox" checked style="accent-color:var(--violet);"/>Product reviews &amp; recommendations</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><input type="checkbox" checked style="accent-color:var(--violet);"/>Educational / how-to content</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><input type="checkbox" style="accent-color:var(--violet);"/>AMAs (Ask Me Anything)</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;"><input type="checkbox" style="accent-color:var(--violet);"/>Giveaways &amp; contests</label>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="navigate('screen-co-onboard-3')">Continue →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 7 — COMMUNITY ONBOARDING Step 3/3
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-co-onboard-3">
+  <nav class="nav">
+    <div class="nav-logo"><div class="sphere-icon"></div>Sphere</div>
+    <div style="font-size:12px;color:var(--t2);">Community Onboarding</div>
+    <button class="btn btn-ghost btn-sm" onclick="navigate('screen-co-onboard-2')">← Back</button>
+  </nav>
+  <div class="content-area" style="display:flex;align-items:center;justify-content:center;min-height:100%;">
+    <div class="glass" style="width:100%;max-width:500px;padding:36px;">
+      <div class="steps">
+        <div class="step-item"><div class="step-dot done">✓</div><span class="step-label">Profile</span></div>
+        <div class="step-line done"></div>
+        <div class="step-item"><div class="step-dot done">✓</div><span class="step-label">Categories</span></div>
+        <div class="step-line done"></div>
+        <div class="step-item"><div class="step-dot active">3</div><span class="step-label active">Monetization</span></div>
+      </div>
+      <h2 style="font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;">Audience &amp; monetization history</h2>
+      <p style="color:var(--t2);font-size:13px;margin-bottom:28px;">Help brands understand your community's value</p>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="grid-2">
+          <div><label class="label">Total Members / Subscribers</label><input class="input" value="780,000"/></div>
+          <div><label class="label">Monthly Active Members</label><input class="input" value="220,000"/></div>
+        </div>
+        <div class="grid-2">
+          <div><label class="label">Avg. Engagement Rate</label><input class="input" value="6.2%"/></div>
+          <div><label class="label">Community Age</label>
+            <select class="input"><option>Less than 1 year</option><option>1-3 years</option><option selected>3-5 years</option><option>5+ years</option></select>
+          </div>
+        </div>
+        <div>
+          <label class="label">Previous Sponsorships?</label>
+          <div style="display:flex;gap:10px;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="radio" name="prev_sponsor" checked style="accent-color:var(--violet);"/> Yes, I've done brand deals before</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="radio" name="prev_sponsor" style="accent-color:var(--violet);"/> No, this is my first time</label>
+          </div>
+        </div>
+        <div><label class="label">Minimum Deal Value (per placement)</label>
+          <select class="input" style="max-width:200px;"><option>$500+</option><option>$1,000+</option><option selected>$2,000+</option><option>$5,000+</option><option>$10,000+</option></select>
+        </div>
+        <div class="glass-el" style="padding:14px;display:flex;align-items:flex-start;gap:10px;">
+          <span style="font-size:18px;">🔒</span>
+          <div><div style="font-size:12px;font-weight:700;margin-bottom:2px;">Your data is private</div><div style="font-size:11px;color:var(--t2);">Audience size is shared only as a range. Brands never see your personal info until you accept a deal.</div></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="coOnboardingComplete()">
+          🚀 Complete Setup &amp; Go to Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 8 — BRAND DASHBOARD
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-brand-dashboard">
+  <nav class="nav">
+    <div class="nav-logo"><div class="sphere-icon"></div>Sphere</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="navigate('screen-brand-dashboard')">Dashboard</button>
+      <button class="nav-tab" onclick="navigate('screen-marketplace')">Marketplace</button>
+      <button class="nav-tab" onclick="navigate('screen-deal-flow')">Deals</button>
+      <button class="nav-tab" onclick="navigate('screen-settings')">Settings</button>
+    </div>
+    <div class="nav-right">
+      <span style="font-size:12px;color:var(--t2);">Luminary Skincare</span>
+      <div class="avatar">LS</div>
+    </div>
+  </nav>
+  <div class="content-area">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:4px;">Good morning,</div>
+        <h1 style="font-size:24px;font-weight:800;letter-spacing:-0.8px;">Alex 👋</h1>
+        <p style="font-size:13px;color:var(--t2);margin-top:4px;">Your AI agents closed 2 deals overnight. Here's your overview.</p>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="navigate('screen-marketplace')">+ New Campaign</button>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="grid-4" style="margin-bottom:22px;">
+      <div class="glass stat-card">
+        <div class="stat-value">12</div>
+        <div class="stat-label">Active Campaigns</div>
+        <div class="stat-delta up">↑ 3 this week</div>
+      </div>
+      <div class="glass stat-card">
+        <div class="stat-value">$28.4K</div>
+        <div class="stat-label">Total Spend</div>
+        <div style="margin-top:10px;"><div class="progress-track"><div class="progress-fill" style="width:57%;"></div></div></div>
+        <div class="stat-delta" style="color:var(--t2);margin-top:4px;">of $50K budget</div>
+      </div>
+      <div class="glass stat-card">
+        <div class="stat-value">1.4M</div>
+        <div class="stat-label">Total Reach</div>
+        <div class="stat-delta up">↑ 22% vs last month</div>
+      </div>
+      <div class="glass stat-card">
+        <div class="stat-value">4.8%</div>
+        <div class="stat-label">Avg. Engagement</div>
+        <div class="stat-delta up">↑ above 3.1% avg</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:22px;">
+      <!-- Analytics Chart -->
+      <div class="glass" style="padding:22px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="font-size:15px;font-weight:700;">Campaign Reach</div>
+          <span class="tag tag-green">↑ 22%</span>
+        </div>
+        <div class="chart-wrapper" style="height:120px;">
+          <svg width="100%" height="120" viewBox="0 0 400 120" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.4"/>
+                <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,95 C40,90 60,75 80,70 S120,50 160,45 S240,30 280,25 S340,15 400,10" fill="none" stroke="url(#lineGrad2)" stroke-width="2.5"/>
+            <path d="M0,95 C40,90 60,75 80,70 S120,50 160,45 S240,30 280,25 S340,15 400,10 L400,120 L0,120 Z" fill="url(#chartGrad)"/>
+            <defs>
+              <linearGradient id="lineGrad2" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#7c3aed"/>
+                <stop offset="100%" stop-color="#06b6d4"/>
+              </linearGradient>
+            </defs>
+            <!-- Month labels -->
+            <text x="0" y="118" font-size="9" fill="rgba(255,255,255,0.35)" font-family="Inter">Nov</text>
+            <text x="65" y="118" font-size="9" fill="rgba(255,255,255,0.35)" font-family="Inter">Dec</text>
+            <text x="130" y="118" font-size="9" fill="rgba(255,255,255,0.35)" font-family="Inter">Jan</text>
+            <text x="195" y="118" font-size="9" fill="rgba(255,255,255,0.35)" font-family="Inter">Feb</text>
+            <text x="260" y="118" font-size="9" fill="rgba(255,255,255,0.35)" font-family="Inter">Mar</text>
+            <text x="370" y="118" font-size="9" fill="rgba(255,255,255,0.55)" font-family="Inter">Apr</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- AI Activity -->
+      <div class="glass" style="padding:22px;">
+        <div style="font-size:15px;font-weight:700;margin-bottom:16px;">🤖 AI Activity</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span class="tag tag-green" style="flex-shrink:0;margin-top:1px;">Done</span>
+            <div><div style="font-size:13px;font-weight:600;">Vetted 14 skincare Discord servers</div><div style="font-size:11px;color:var(--t2);">2 minutes ago</div></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span class="tag tag-amber" style="flex-shrink:0;margin-top:1px;">Active</span>
+            <div><div style="font-size:13px;font-weight:600;">Negotiating with Glow Talk Newsletter</div><div style="font-size:11px;color:var(--t2);">Ongoing · Est. 4h left</div></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span class="tag tag-violet" style="flex-shrink:0;margin-top:1px;">New</span>
+            <div><div style="font-size:13px;font-weight:600;">3 new communities matched your brief</div><div style="font-size:11px;color:var(--t2);">Ready for review</div></div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span class="tag tag-cyan" style="flex-shrink:0;margin-top:1px;">Info</span>
+            <div><div style="font-size:13px;font-weight:600;">SkinScience FB Group accepted deal</div><div style="font-size:11px;color:var(--t2);">$2,400 · 180k members</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Recommendations -->
+    <div class="glass" style="padding:22px;margin-bottom:22px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:15px;font-weight:700;">✨ AI-Recommended Communities</div>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('screen-marketplace')">View all 47 →</button>
+      </div>
+      <div class="grid-3" style="gap:12px;">
+        <div class="glass-el" style="padding:14px;cursor:pointer;" onclick="navigate('screen-deal-flow')">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="font-size:22px;">💬</div>
+            <div style="flex:1;"><div style="font-size:13px;font-weight:700;">r/SkincareAddiction</div><div style="font-size:11px;color:var(--t2);">Reddit · 780K</div></div>
+            <span class="tag tag-green" style="font-size:10px;">98%</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;"><span style="font-size:18px;font-weight:800;">$3,200</span><span class="tag tag-cyan" style="font-size:10px;">6.2% eng.</span></div>
+        </div>
+        <div class="glass-el" style="padding:14px;cursor:pointer;" onclick="navigate('screen-deal-flow')">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="font-size:22px;">✉️</div>
+            <div style="flex:1;"><div style="font-size:13px;font-weight:700;">The Dermis Digest</div><div style="font-size:11px;color:var(--t2);">Newsletter · 45K</div></div>
+            <span class="tag tag-green" style="font-size:10px;">95%</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;"><span style="font-size:18px;font-weight:800;">$1,800</span><span class="tag tag-cyan" style="font-size:10px;">44% open</span></div>
+        </div>
+        <div class="glass-el" style="padding:14px;cursor:pointer;" onclick="navigate('screen-deal-flow')">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="font-size:22px;">📘</div>
+            <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Glow Getters FB</div><div style="font-size:11px;color:var(--t2);">Facebook · 220K</div></div>
+            <span class="tag tag-amber" style="font-size:10px;">88%</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;"><span style="font-size:18px;font-weight:800;">$2,400</span><span class="tag tag-cyan" style="font-size:10px;">4.8% eng.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="glass" style="padding:18px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px;">Quick Actions</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="navigate('screen-marketplace')">🔍 Browse Marketplace</button>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('screen-deal-flow')">📋 Review Pending Deals</button>
+        <button class="btn btn-ghost btn-sm" onclick="showToast('Campaign brief editor coming soon!')">➕ New Campaign Brief</button>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('screen-admin')">🛡️ Admin Panel</button>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('screen-settings')">⚙️ Settings</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 9 — MARKETPLACE
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-marketplace">
+  <nav class="nav">
+    <div class="nav-logo"><div class="sphere-icon"></div>Sphere</div>
+    <div class="nav-tabs">
+      <button class="nav-tab" onclick="navigate('screen-brand-dashboard')">Dashboard</button>
+      <button class="nav-tab active" onclick="navigate('screen-marketplace')">Marketplace</button>
+      <button class="nav-tab" onclick="navigate('screen-deal-flow')">Deals</button>
+      <button class="nav-tab" onclick="navigate('screen-settings')">Settings</button>
+    </div>
+    <div class="nav-right">
+      <span style="font-size:12px;color:var(--t2);">Luminary Skincare</span>
+      <div class="avatar">LS</div>
+    </div>
+  </nav>
+  <div class="content-area">
+    <!-- Search -->
+    <div class="glass" style="padding:16px;margin-bottom:18px;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input class="input" placeholder="🔍  Search communities by name, niche, platform…" style="flex:1;min-width:200px;"/>
+        <select class="input" style="width:140px;cursor:pointer;"><option>All Platforms</option><option>Reddit</option><option>Facebook</option><option>Discord</option><option>Newsletter</option></select>
+        <select class="input" style="width:150px;cursor:pointer;"><option>All Niches</option><option>Beauty &amp; Skincare</option><option>Fitness</option><option>Finance</option></select>
+        <select class="input" style="width:130px;cursor:pointer;"><option>Any Size</option><option>1K–50K</option><option>50K–500K</option><option>500K+</option></select>
+        <button class="btn btn-primary btn-sm">Apply</button>
+      </div>
+    </div>
+
+    <!-- AI banner -->
+    <div class="glass" style="padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;background:rgba(124,58,237,0.07);border-color:rgba(124,58,237,0.2);">
+      <span style="font-size:22px;">✨</span>
+      <div style="flex:1;"><div style="font-size:14px;font-weight:700;margin-bottom:2px;">AI-Curated for Luminary Skincare</div><div style="font-size:12px;color:var(--t2);">47 best-matched communities from our network of 12,400+</div></div>
+      <span class="tag tag-violet">47 matches</span>
+    </div>
+
+    <div class="pill-tabs">
+      <button class="pill-tab active">AI Picks (47)</button>
+      <button class="pill-tab">All Communities</button>
+      <button class="pill-tab">Saved (8)</button>
+    </div>
+
+    <div class="grid-3" style="margin-bottom:24px;">
+      <div class="glass opp-card" onclick="navigate('screen-deal-flow')">
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
+          <div style="width:42px;height:42px;border-radius:10px;background:rgba(255,69,58,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;">💬</div>
+          <div style="flex:1;"><div style="font-size:14px;font-weight:700;">r/SkincareAddiction</div><div style="font-size:11px;color:var(--t2);">Reddit · Active 2h ago</div></div>
+          <span class="tag tag-green">98%</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;"><span class="tag tag-violet">Skincare</span><span class="tag tag-cyan">Beauty</span></div>
+        <div class="grid-2" style="gap:8px;margin-bottom:14px;">
+          <div class="glass-el" style="padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;">780K</div><div style="font-size:10px;color:var(--t2);">Members</div></div>
+          <div class="glass-el" style="padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;">6.2%</div><div style="font-size:10px;color:var(--t2);">Engagement</div></div>
+        </div>
+        <div style="border-top:1px solid var(--glass-border);padding-top:12px;display:flex;align-items:center;justify-content:space-between;">
+          <div><div style="font-size:18px;font-weight:800;">$3,200</div><div style="font-size:10px;color:var(--t2);">per sponsored post</div></div>
+          <button class="btn btn-primary btn-sm">Propose Deal →</button>
+        </div>
+      </div>
+
+      <div class="glass opp-card" onclick="navigate('screen-deal-flow')">
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
+          <div style="width:42px;height:42px;border-radius:10px;background:rgba(6,182,212,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;">✉️</div>
+          <div style="flex:1;"><div style="font-size:14px;font-weight:700;">The Dermis Digest</div><div style="font-size:11px;color:var(--t2);">Newsletter · Weekly</div></div>
+          <span class="tag tag-green">95%</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;"><span class="tag tag-cyan">Dermatology</span><span class="tag tag-violet">Science</span></div>
+        <div class="grid-2" style="gap:8px;margin-bottom:14px;">
+          <div class="glass-el" style="padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;">45K</div><div style="font-size:10px;color:var(--t2);">Subscribers</div></div>
+          <div class="glass-el" style="padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;">44%</div><div style="font-size:10px;color:var(--t2);">Open Rate</div></div>
+        </div>
+        <div style="border-top:1px solid var(--glass-border);padding-top:12px;display:flex;align-items:center;justify-content:space-between;">
+          <div><div style="font-size:18px;font-weight:800;">$1,800</div><div style="font-size:10px;color:var(--t2);">per placement</div></div>
+          <button class="btn btn-primary btn-sm">Propose Deal →</button>
+        </div>
+      </div>
+
+      <div class="glass opp-card" onclick="navigate('screen-deal-flow')">
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;">
+          <div style="width:42px;height:42px;border-radius:10px;background:rgba(124,58,237,0.15);display:flex;align-items:center;justify-content:center;font-size:20px;">📘</div>
+          <div style="flex:1;"><div style="font-size:14px;font-weight:700;">Glow Getters FB</div><div style="font-size:11px;color:var(--t2);">Facebook · Active daily</div></div>
+          <span class="tag tag-amber">88%</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;"><span class="tag tag-rose">Beauty</span><span class="tag tag-violet">Women 25–45</span></div>
+        <div class="grid-2" style="gap:8px;margin-bottom:14px;">
+          <div class="glass-el" style="padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;">220K</div><div style="font-size:10px;color:var(--t2);">Members</div></div>
+          <div class="glass-el" style="padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;">4.8%</div><div style="font-size:10px;color:var(--t2);">Engagement</div></div>
+        </div>
+        <div style="border-top:1px solid var(--glass-border);padding-top:12px;display:flex;align-items:center;justify-content:space-between;">
+          <div><div style="font-size:18px;font-weight:800;">$2,400</div><div style="font-size:10px;color:var(--t2);">post + story</div></div>
+          <button class="btn btn-primary btn-sm">Propose Deal →</button>
+        </div>
+      </div>
+
+      <!-- Skeleton loading placeholders -->
+      <div class="glass" style="padding:18px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+          <div class="skeleton" style="width:42px;height:42px;border-radius:10px;"></div>
+          <div style="flex:1;"><div class="skeleton" style="height:14px;margin-bottom:6px;"></div><div class="skeleton" style="height:11px;width:60%;"></div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;"><div class="skeleton" style="height:20px;width:70px;border-radius:100px;"></div><div class="skeleton" style="height:20px;width:60px;border-radius:100px;"></div></div>
+        <div class="grid-2" style="gap:8px;margin-bottom:14px;"><div class="skeleton" style="height:48px;border-radius:10px;"></div><div class="skeleton" style="height:48px;border-radius:10px;"></div></div>
+        <div class="skeleton" style="height:32px;border-radius:var(--r-md);margin-top:12px;"></div>
+      </div>
+
+      <div class="glass" style="padding:18px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+          <div class="skeleton" style="width:42px;height:42px;border-radius:10px;"></div>
+          <div style="flex:1;"><div class="skeleton" style="height:14px;margin-bottom:6px;"></div><div class="skeleton" style="height:11px;width:55%;"></div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;"><div class="skeleton" style="height:20px;width:65px;border-radius:100px;"></div></div>
+        <div class="grid-2" style="gap:8px;margin-bottom:14px;"><div class="skeleton" style="height:48px;border-radius:10px;"></div><div class="skeleton" style="height:48px;border-radius:10px;"></div></div>
+        <div class="skeleton" style="height:32px;border-radius:var(--r-md);margin-top:12px;"></div>
+      </div>
+
+      <div class="glass" style="padding:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:220px;border-style:dashed;opacity:0.5;cursor:pointer;" onclick="showToast('Loading more communities…')">
+        <div style="font-size:26px;">↓</div>
+        <div style="font-size:13px;font-weight:600;">Load 42 more</div>
+        <div style="font-size:11px;color:var(--t2);">Sorted by match score</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 10 — DEAL FLOW / NEGOTIATION
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-deal-flow">
+  <nav class="nav">
+    <div class="nav-logo"><div class="sphere-icon"></div>Sphere</div>
+    <div style="font-size:12px;color:var(--t2);">Deal Negotiation</div>
+    <button class="btn btn-ghost btn-sm" onclick="navigate('screen-marketplace')">← Marketplace</button>
+  </nav>
+  <div class="content-area" style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;">
+
+    <!-- Left: deal details -->
+    <div style="flex:0 0 300px;display:flex;flex-direction:column;gap:14px;">
+      <div class="glass" style="padding:22px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+          <div style="font-size:32px;">💬</div>
+          <div>
+            <div style="font-size:16px;font-weight:800;">r/SkincareAddiction</div>
+            <div style="font-size:12px;color:var(--t2);">Reddit · 780K members</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;color:var(--t2);">Engagement Rate</span>
+            <span style="font-size:13px;font-weight:700;color:var(--green-light);">6.2%</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;color:var(--t2);">AI Match Score</span>
+            <span style="font-size:13px;font-weight:700;color:var(--violet-light);">98%</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;color:var(--t2);">Response Time</span>
+            <span style="font-size:13px;font-weight:700;">~4 hours</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;color:var(--t2);">Past deals</span>
+            <span style="font-size:13px;font-weight:700;">6</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deal Terms -->
+      <div class="glass" style="padding:20px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:14px;">📋 Deal Terms</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;color:var(--t2);">Deal Type</span>
+            <span class="tag tag-violet" style="font-size:11px;">Sponsored Post</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;color:var(--t2);">Your Budget</span>
+            <span style="font-size:13px;font-weight:700;">$3,200</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;color:var(--t2);">Counter Offer</span>
+            <span style="font-size:13px;font-weight:700;color:var(--amber-light);">$2,900</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;color:var(--t2);">Timeline</span>
+            <span style="font-size:13px;font-weight:700;">Within 2 weeks</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;color:var(--t2);">Status</span>
+            <span class="tag tag-amber">Negotiating</span>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="showToast('✓ Deal accepted at $2,900!')">Accept $2,900</button>
+          <button class="btn btn-ghost btn-sm" onclick="showToast('Counter offer sent!')">Counter</button>
+        </div>
+      </div>
+
+      <!-- Owner -->
+      <div class="glass" style="padding:16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--cyan),var(--violet));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">SK</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;">Skincare_Mod</div>
+          <div style="font-size:11px;color:var(--t2);">Verified · 6 past deals · 4.9★</div>
+        </div>
+        <button class="btn btn-ghost btn-xs" onclick="showToast('Direct message opened')">Message</button>
+      </div>
+    </div>
+
+    <!-- Right: AI Negotiation Chat -->
+    <div class="glass" style="flex:1;min-width:280px;padding:22px;display:flex;flex-direction:column;height:calc(100vh - 130px);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--glass-border);">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--violet),var(--indigo));display:flex;align-items:center;justify-content:center;font-size:14px;">🤖</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;">Sphere AI Agent</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green-light);"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;"></span>Negotiating on your behalf</div>
+        </div>
+      </div>
+
+      <div id="chat-messages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;margin-bottom:16px;padding-right:4px;">
+        <div><div class="chat-bubble ai">Hi! I'm your Sphere AI agent. I've analyzed r/SkincareAddiction's audience and it's a <strong>98% match</strong> for Luminary Skincare. I'm going to negotiate the best rate for you.</div></div>
+        <div style="display:flex;justify-content:flex-end;"><div class="chat-bubble user">Great, I'd like to start at $3,200 for a sponsored post.</div></div>
+        <div><div class="chat-bubble ai">Understood. I've sent the initial proposal at <strong>$3,200</strong>. The community owner typically responds within 4 hours. I'll notify you of any updates.</div></div>
+        <div style="text-align:center;font-size:11px;color:var(--t3);padding:4px 0;">— 3 hours later —</div>
+        <div><div class="chat-bubble ai">The moderator responded! They've offered a counter at <strong>$2,900</strong> — slightly below your budget. This is a good deal given their 6.2% engagement rate. Should I accept?</div></div>
+        <div style="display:flex;justify-content:flex-end;"><div class="chat-bubble user">Can you push for $2,700 first?</div></div>
+        <div>
+          <div class="chat-bubble ai" style="display:inline-block;">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid var(--glass-border);padding-top:14px;display:flex;gap:10px;">
+        <input class="input" id="chat-input" placeholder="Message the AI agent…" style="flex:1;" onkeydown="if(event.key==='Enter')sendChat()"/>
+        <button class="btn btn-primary" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 11 — COMMUNITY OWNER DASHBOARD
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-co-dashboard">
+  <nav class="nav">
+    <div class="nav-logo"><div class="sphere-icon"></div>Sphere</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active">Dashboard</button>
+      <button class="nav-tab">Opportunities</button>
+      <button class="nav-tab">Earnings</button>
+      <button class="nav-tab" onclick="navigate('screen-settings')">Settings</button>
+    </div>
+    <div class="nav-right">
+      <span style="font-size:12px;color:var(--t2);">r/SkincareAddiction</span>
+      <div class="avatar" style="background:linear-gradient(135deg,#f43f5e,#fb923c);">SK</div>
+    </div>
+  </nav>
+
+  <div style="display:flex;flex:1;overflow:hidden;">
+    <div class="sidebar">
+      <div class="sidebar-label">Community</div>
+      <div class="sidebar-item active"><span class="sidebar-icon">🏠</span> Overview</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📥</span> Inbound Offers <span class="notif-dot"></span></div>
+      <div class="sidebar-item"><span class="sidebar-icon">🤝</span> Active Deals</div>
+      <div class="sidebar-item"><span class="sidebar-icon">💰</span> Earnings</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📊</span> Analytics</div>
+      <div class="sidebar-label">Settings</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🛡️</span> Brand Prefs</div>
+      <div class="sidebar-item" onclick="navigate('screen-settings')"><span class="sidebar-icon">💳</span> Billing</div>
+    </div>
+
+    <div class="content-area" style="padding:calc(var(--nav-h) + 20px) 24px 40px;">
+      <div style="margin-bottom:22px;">
+        <h1 style="font-size:22px;font-weight:800;letter-spacing:-0.5px;">r/SkincareAddiction 👋</h1>
+        <p style="font-size:13px;color:var(--t2);margin-top:4px;">3 new brand offers waiting · Your community is verified ✓</p>
+      </div>
+
+      <!-- Profile completeness -->
+      <div class="glass" style="padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:12px;font-weight:700;">Profile Completeness</span>
+            <span style="font-size:12px;font-weight:700;color:var(--violet-light);">87%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width:87%;"></div></div>
+          <div style="font-size:11px;color:var(--t2);margin-top:5px;">Add payout details to unlock more deals</div>
+        </div>
+        <button class="btn btn-ghost btn-sm">Complete Profile</button>
+      </div>
+
+      <div class="grid-4" style="margin-bottom:20px;">
+        <div class="glass stat-card">
+          <div class="stat-value">$18.2K</div>
+          <div class="stat-label">Lifetime Earnings</div>
+          <div class="stat-delta up">↑ $2,400 this month</div>
+        </div>
+        <div class="glass stat-card">
+          <div class="stat-value">24</div>
+          <div class="stat-label">Deals Completed</div>
+          <div class="stat-delta" style="color:var(--t2);">100% on-time</div>
+        </div>
+        <div class="glass stat-card">
+          <div class="stat-value">780K</div>
+          <div class="stat-label">Members</div>
+          <div class="stat-delta up">↑ 12K this month</div>
+        </div>
+        <div class="glass stat-card">
+          <div class="stat-value">4.9★</div>
+          <div class="stat-label">Brand Rating</div>
+          <div class="stat-delta" style="color:var(--t2);">from 24 reviews</div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:20px;">
+        <!-- Inbound Offers -->
+        <div class="glass" style="padding:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-size:14px;font-weight:700;">📥 New Brand Offers</div>
+            <span class="tag tag-rose">3 new</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="glass-el" style="padding:14px;cursor:pointer;" onclick="navigate('screen-deal-flow')">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">LS</div>
+                <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Luminary Skincare</div><div style="font-size:11px;color:var(--t2);">Sponsored Post · $3,200</div></div>
+                <span class="tag tag-violet">New</span>
+              </div>
+              <div style="font-size:12px;color:var(--t2);margin-bottom:10px;">"We'd love to sponsor a pinned post about our new Hyaluronic Serum…"</div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="event.stopPropagation();showToast('✓ Accepted!')">Accept</button>
+                <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;" onclick="event.stopPropagation();navigate('screen-deal-flow')">Counter</button>
+                <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation()">✗</button>
+              </div>
+            </div>
+            <div class="glass-el" style="padding:14px;cursor:pointer;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#0891b2,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">NC</div>
+                <div style="flex:1;"><div style="font-size:13px;font-weight:700;">NaturaCure Labs</div><div style="font-size:11px;color:var(--t2);">AMA Session · $1,200</div></div>
+                <span class="tag tag-violet">New</span>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="event.stopPropagation();showToast('✓ Accepted!')">Accept</button>
+                <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;" onclick="event.stopPropagation()">Counter</button>
+                <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation()">✗</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Earnings Chart -->
+        <div class="glass" style="padding:20px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px;">💰 Earnings — Last 6 Months</div>
+          <div style="display:flex;align-items:flex-end;gap:8px;height:110px;margin-bottom:8px;">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;">
+              <div style="width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--violet),var(--indigo));margin-top:auto;height:55%;"></div>
+              <span style="font-size:10px;color:var(--t2);">Nov</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;">
+              <div style="width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--violet),var(--indigo));margin-top:auto;height:40%;"></div>
+              <span style="font-size:10px;color:var(--t2);">Dec</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;">
+              <div style="width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--violet),var(--indigo));margin-top:auto;height:70%;"></div>
+              <span style="font-size:10px;color:var(--t2);">Jan</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;">
+              <div style="width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--violet),var(--indigo));margin-top:auto;height:62%;"></div>
+              <span style="font-size:10px;color:var(--t2);">Feb</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;">
+              <div style="width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--violet),var(--indigo));margin-top:auto;height:84%;"></div>
+              <span style="font-size:10px;color:var(--t2);">Mar</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;">
+              <div style="width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--cyan),var(--indigo));margin-top:auto;height:100%;"></div>
+              <span style="font-size:10px;color:var(--cyan);">Apr</span>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><div style="font-size:20px;font-weight:800;">$2,400</div><div style="font-size:11px;color:var(--t2);">This month (so far)</div></div>
+            <div style="text-align:right;"><div style="font-size:20px;font-weight:800;color:var(--green-light);">↑ 28%</div><div style="font-size:11px;color:var(--t2);">vs last month</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rate Card -->
+      <div class="glass" style="padding:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:14px;font-weight:700;">📋 My Rate Card</div>
+          <button class="btn btn-ghost btn-sm">Edit Rates</button>
+        </div>
+        <div class="grid-3">
+          <div class="glass-el" style="padding:16px;text-align:center;"><div style="font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Sponsored Post</div><div style="font-size:22px;font-weight:800;">$3,200</div><div style="font-size:10px;color:var(--t2);margin-top:3px;">per placement</div></div>
+          <div class="glass-el" style="padding:16px;text-align:center;"><div style="font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">AMA Session</div><div style="font-size:22px;font-weight:800;">$1,800</div><div style="font-size:10px;color:var(--t2);margin-top:3px;">2h session</div></div>
+          <div class="glass-el" style="padding:16px;text-align:center;"><div style="font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Monthly Package</div><div style="font-size:22px;font-weight:800;">$8,500</div><div style="font-size:10px;color:var(--t2);margin-top:3px;">4 posts + AMA</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 12 — ADMIN DASHBOARD
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-admin">
+  <nav class="nav">
+    <div class="nav-logo"><div class="sphere-icon"></div>Sphere</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active">Admin</button>
+      <button class="nav-tab" onclick="navigate('screen-brand-dashboard')">Brand View</button>
+      <button class="nav-tab" onclick="navigate('screen-co-dashboard')">Community View</button>
+      <button class="nav-tab" onclick="navigate('screen-settings')">Settings</button>
+    </div>
+    <div class="nav-right">
+      <span class="tag tag-rose">Admin</span>
+      <div class="avatar" style="background:linear-gradient(135deg,var(--rose),var(--amber));">AD</div>
+    </div>
+  </nav>
+
+  <div style="display:flex;flex:1;overflow:hidden;">
+    <div class="sidebar">
+      <div class="sidebar-label">Platform</div>
+      <div class="sidebar-item active"><span class="sidebar-icon">📊</span> Overview</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🏘️</span> Communities <span class="notif-dot"></span></div>
+      <div class="sidebar-item"><span class="sidebar-icon">🏷️</span> Brands</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🤝</span> Deals</div>
+      <div class="sidebar-label">Management</div>
+      <div class="sidebar-item"><span class="sidebar-icon">✅</span> Approvals <span class="notif-dot"></span></div>
+      <div class="sidebar-item"><span class="sidebar-icon">🚩</span> Reports</div>
+      <div class="sidebar-item"><span class="sidebar-icon">👥</span> Users</div>
+      <div class="sidebar-item"><span class="sidebar-icon">💳</span> Revenue</div>
+    </div>
+
+    <div class="content-area" style="padding:calc(var(--nav-h) + 20px) 24px 40px;">
+      <div style="margin-bottom:22px;">
+        <h1 style="font-size:22px;font-weight:800;letter-spacing:-0.5px;">Admin Overview</h1>
+        <p style="font-size:13px;color:var(--t2);margin-top:4px;">Platform health · April 8, 2026</p>
+      </div>
+
+      <!-- Revenue Metrics -->
+      <div class="grid-4" style="margin-bottom:22px;">
+        <div class="glass stat-card">
+          <div class="stat-value">$142K</div>
+          <div class="stat-label">Platform GMV</div>
+          <div class="stat-delta up">↑ 18% this month</div>
+        </div>
+        <div class="glass stat-card">
+          <div class="stat-value">12,400</div>
+          <div class="stat-label">Communities</div>
+          <div class="stat-delta up">↑ 340 this week</div>
+        </div>
+        <div class="glass stat-card">
+          <div class="stat-value">2,140</div>
+          <div class="stat-label">Active Brands</div>
+          <div class="stat-delta up">↑ 87 this week</div>
+        </div>
+        <div class="glass stat-card">
+          <div class="stat-value">486</div>
+          <div class="stat-label">Active Deals</div>
+          <div class="stat-delta" style="color:var(--t2);">$1.2M pipeline</div>
+        </div>
+      </div>
+
+      <!-- Pending Approvals -->
+      <div class="glass" style="padding:20px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:700;">⏳ Pending Community Approvals</div>
+          <span class="tag tag-amber">7 pending</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--r-md);">
+            <div style="font-size:20px;">🎮</div>
+            <div style="flex:1;"><div style="font-size:13px;font-weight:700;">TechMinds Discord</div><div style="font-size:11px;color:var(--t2);">Discord · 42K members · Applied 2h ago</div></div>
+            <span class="tag tag-cyan">Tech</span>
+            <button class="btn btn-primary btn-xs" onclick="showToast('✓ Community approved!')">Approve</button>
+            <button class="btn btn-ghost btn-xs" onclick="showToast('Community rejected')">Reject</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,0.02);border:1px solid var(--glass-border);border-radius:var(--r-md);">
+            <div style="font-size:20px;">📰</div>
+            <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Finance Unlocked Newsletter</div><div style="font-size:11px;color:var(--t2);">Newsletter · 18K subs · Applied 5h ago</div></div>
+            <span class="tag tag-amber">Finance</span>
+            <button class="btn btn-primary btn-xs" onclick="showToast('✓ Community approved!')">Approve</button>
+            <button class="btn btn-ghost btn-xs" onclick="showToast('Community rejected')">Reject</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--r-md);">
+            <div style="font-size:20px;">💪</div>
+            <div style="flex:1;"><div style="font-size:13px;font-weight:700;">FitLife Reddit Community</div><div style="font-size:11px;color:var(--t2);">Reddit · 300K members · Applied 8h ago</div></div>
+            <span class="tag tag-green">Fitness</span>
+            <button class="btn btn-primary btn-xs" onclick="showToast('✓ Community approved!')">Approve</button>
+            <button class="btn btn-ghost btn-xs" onclick="showToast('Community rejected')">Reject</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Community Management Table -->
+      <div class="glass" style="padding:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:14px;font-weight:700;">🏘️ Community Management</div>
+          <div style="display:flex;gap:8px;">
+            <input class="input" placeholder="Search communities…" style="width:200px;padding:7px 12px;font-size:12px;"/>
+            <button class="btn btn-ghost btn-sm">Export CSV</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Community</th>
+                <th>Platform</th>
+                <th>Members</th>
+                <th>Deals</th>
+                <th>Revenue</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div style="font-weight:600;">r/SkincareAddiction</div><div style="font-size:11px;color:var(--t2);">Skincare_Mod</div></td>
+                <td><span class="tag tag-rose" style="font-size:10px;">Reddit</span></td>
+                <td>780K</td>
+                <td>24</td>
+                <td style="color:var(--green-light);font-weight:600;">$18,200</td>
+                <td><span class="tag tag-green" style="font-size:10px;">Active</span></td>
+                <td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-xs" onclick="showToast('Profile opened')">View</button><button class="btn btn-ghost btn-xs" onclick="showToast('Suspended')">Suspend</button></div></td>
+              </tr>
+              <tr class="admin-row-even">
+                <td><div style="font-weight:600;">Glow Getters FB</div><div style="font-size:11px;color:var(--t2);">glow_admin</div></td>
+                <td><span class="tag tag-blue" style="font-size:10px;">Facebook</span></td>
+                <td>220K</td>
+                <td>12</td>
+                <td style="color:var(--green-light);font-weight:600;">$7,400</td>
+                <td><span class="tag tag-green" style="font-size:10px;">Active</span></td>
+                <td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-xs" onclick="showToast('Profile opened')">View</button><button class="btn btn-ghost btn-xs" onclick="showToast('Suspended')">Suspend</button></div></td>
+              </tr>
+              <tr>
+                <td><div style="font-weight:600;">The Dermis Digest</div><div style="font-size:11px;color:var(--t2);">dermis_editor</div></td>
+                <td><span class="tag tag-cyan" style="font-size:10px;">Newsletter</span></td>
+                <td>45K</td>
+                <td>8</td>
+                <td style="color:var(--green-light);font-weight:600;">$4,100</td>
+                <td><span class="tag tag-green" style="font-size:10px;">Active</span></td>
+                <td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-xs" onclick="showToast('Profile opened')">View</button><button class="btn btn-ghost btn-xs" onclick="showToast('Suspended')">Suspend</button></div></td>
+              </tr>
+              <tr class="admin-row-even">
+                <td><div style="font-weight:600;">Skincare Science Discord</div><div style="font-size:11px;color:var(--t2);">sc_mod</div></td>
+                <td><span class="tag tag-violet" style="font-size:10px;">Discord</span></td>
+                <td>38K</td>
+                <td>6</td>
+                <td style="color:var(--green-light);font-weight:600;">$2,800</td>
+                <td><span class="tag tag-amber" style="font-size:10px;">Review</span></td>
+                <td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-xs" onclick="showToast('Profile opened')">View</button><button class="btn btn-danger btn-xs" onclick="showToast('Account flagged')">Flag</button></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 13 — SETTINGS & BILLING
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-settings">
+  <nav class="nav">
+    <div class="nav-logo"><div class="sphere-icon"></div>Sphere</div>
+    <div class="nav-tabs">
+      <button class="nav-tab" onclick="navigate('screen-brand-dashboard')">Dashboard</button>
+      <button class="nav-tab" onclick="navigate('screen-marketplace')">Marketplace</button>
+      <button class="nav-tab" onclick="navigate('screen-deal-flow')">Deals</button>
+      <button class="nav-tab active" onclick="navigate('screen-settings')">Settings</button>
+    </div>
+    <div class="nav-right">
+      <span style="font-size:12px;color:var(--t2);">Luminary Skincare</span>
+      <div class="avatar">LS</div>
+    </div>
+  </nav>
+
+  <div style="display:flex;flex:1;overflow:hidden;">
+    <div class="sidebar">
+      <div class="sidebar-label">Account</div>
+      <div class="sidebar-item"><span class="sidebar-icon">👤</span> Profile</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🔒</span> Security</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🔔</span> Notifications</div>
+      <div class="sidebar-label">Billing</div>
+      <div class="sidebar-item active"><span class="sidebar-icon">💳</span> Subscription</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📄</span> Invoices</div>
+      <div class="sidebar-item"><span class="sidebar-icon">💰</span> Payout</div>
+      <div class="sidebar-label">Platform</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🤖</span> AI Settings</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🔗</span> Integrations</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🛡️</span> Brand Safety</div>
+    </div>
+
+    <div class="content-area" style="padding:calc(var(--nav-h) + 20px) 28px 40px;max-width:860px;">
+      <h1 style="font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:24px;">Settings &amp; Billing</h1>
+
+      <!-- Current Plan -->
+      <div class="glass" style="padding:22px;margin-bottom:20px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--violet-light);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">Current Plan</div>
+            <div style="font-size:22px;font-weight:800;letter-spacing:-0.5px;" class="grad-text">Growth Plan</div>
+            <div style="font-size:13px;color:var(--t2);margin-top:4px;">$299/month · Renews May 8, 2026</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm" onclick="showToast('Plan canceled — effective end of billing period')">Cancel Plan</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('Upgrading to Enterprise…')">Upgrade to Enterprise →</button>
+          </div>
+        </div>
+        <div class="grid-3" style="gap:12px;">
+          <div class="glass-el" style="padding:14px;text-align:center;">
+            <div style="font-size:20px;font-weight:800;">25</div>
+            <div style="font-size:11px;color:var(--t2);margin-top:2px;">Deals this month</div>
+            <div class="progress-track" style="margin-top:8px;"><div class="progress-fill" style="width:48%;"></div></div>
+            <div style="font-size:10px;color:var(--t3);margin-top:4px;">12 of 25 used</div>
+          </div>
+          <div class="glass-el" style="padding:14px;text-align:center;">
+            <div style="font-size:20px;font-weight:800;">✓</div>
+            <div style="font-size:11px;color:var(--t2);margin-top:2px;">AI Negotiation</div>
+            <div style="font-size:10px;color:var(--green-light);margin-top:6px;">Active</div>
+          </div>
+          <div class="glass-el" style="padding:14px;text-align:center;">
+            <div style="font-size:20px;font-weight:800;">✓</div>
+            <div style="font-size:11px;color:var(--t2);margin-top:2px;">Analytics</div>
+            <div style="font-size:10px;color:var(--green-light);margin-top:6px;">Full access</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Method -->
+      <div class="glass" style="padding:22px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:14px;font-weight:700;">Payment Method</div>
+          <button class="btn btn-ghost btn-sm" onclick="showToast('Add new card flow opened')">+ Add Card</button>
+        </div>
+        <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+          <!-- CSS Credit Card -->
+          <div class="credit-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div class="card-chip"></div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.6);">VISA</div>
+            </div>
+            <div class="card-number">•••• •••• •••• 4242</div>
+            <div class="card-meta">
+              <div>
+                <div class="card-exp" style="margin-bottom:2px;">CARDHOLDER</div>
+                <div class="card-name">Alex Johnson</div>
+              </div>
+              <div style="text-align:right;">
+                <div class="card-exp">EXPIRES</div>
+                <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.8);">12/27</div>
+              </div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--glass-el-bg);border:1px solid var(--glass-el-border);border-radius:var(--r-md);">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:32px;height:20px;background:#1a1a2e;border-radius:4px;border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(255,255,255,0.5);">VISA</div>
+                <div><div style="font-size:13px;font-weight:600;">•••• 4242</div><div style="font-size:11px;color:var(--t2);">Expires 12/27</div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="tag tag-green" style="font-size:10px;">Default</span>
+                <button class="btn btn-ghost btn-xs">Remove</button>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--t2);">Your card is charged on the 8th of each month. <span style="color:var(--violet-light);cursor:pointer;text-decoration:underline;">View billing history →</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Invoice History -->
+      <div class="glass" style="padding:22px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:700;">📄 Invoice History</div>
+          <button class="btn btn-ghost btn-sm" onclick="showToast('All invoices downloaded')">Download All</button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div style="font-weight:600;">INV-2026-004</div><div style="font-size:11px;color:var(--t2);">Growth Plan — April</div></td>
+              <td style="color:var(--t2);">Apr 8, 2026</td>
+              <td style="font-weight:700;">$299.00</td>
+              <td><span class="tag tag-green" style="font-size:10px;">Paid</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('Invoice downloaded')">PDF</button></td>
+            </tr>
+            <tr class="admin-row-even">
+              <td><div style="font-weight:600;">INV-2026-003</div><div style="font-size:11px;color:var(--t2);">Growth Plan — March</div></td>
+              <td style="color:var(--t2);">Mar 8, 2026</td>
+              <td style="font-weight:700;">$299.00</td>
+              <td><span class="tag tag-green" style="font-size:10px;">Paid</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('Invoice downloaded')">PDF</button></td>
+            </tr>
+            <tr>
+              <td><div style="font-weight:600;">INV-2026-002</div><div style="font-size:11px;color:var(--t2);">Growth Plan — February</div></td>
+              <td style="color:var(--t2);">Feb 8, 2026</td>
+              <td style="font-weight:700;">$299.00</td>
+              <td><span class="tag tag-green" style="font-size:10px;">Paid</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('Invoice downloaded')">PDF</button></td>
+            </tr>
+            <tr class="admin-row-even">
+              <td><div style="font-weight:600;">INV-2026-001</div><div style="font-size:11px;color:var(--t2);">Starter Plan — January</div></td>
+              <td style="color:var(--t2);">Jan 8, 2026</td>
+              <td style="font-weight:700;">$99.00</td>
+              <td><span class="tag tag-green" style="font-size:10px;">Paid</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('Invoice downloaded')">PDF</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 14 — MOBILE NAV / RESPONSIVE VIEW
+══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-mobile">
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px 20px 80px;">
+    <div style="width:100%;max-width:390px;position:relative;">
+      <!-- Phone frame -->
+      <div style="background:var(--bg-mid);border:1px solid rgba(255,255,255,0.12);border-radius:40px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.8),0 0 0 1px rgba(255,255,255,0.04);position:relative;">
+        <!-- Status bar -->
+        <div style="height:44px;background:rgba(7,7,16,0.9);display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:11px;font-weight:600;">
+          <span>9:41</span>
+          <div style="display:flex;gap:5px;align-items:center;">
+            <div style="width:14px;height:10px;border-radius:2px;border:1.5px solid rgba(255,255,255,0.6);position:relative;"><div style="position:absolute;inset:2px;background:rgba(255,255,255,0.7);border-radius:1px;"></div></div>
+          </div>
+        </div>
+
+        <!-- Mobile hero screen -->
+        <div style="padding:20px;background:var(--bg-deep);min-height:560px;position:relative;overflow:hidden;">
+          <!-- Compact orbs -->
+          <div style="position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,0.4),transparent 70%);top:-80px;right:-60px;filter:blur(40px);"></div>
+          <div style="position:absolute;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(6,182,212,0.35),transparent 70%);bottom:100px;left:-40px;filter:blur(35px);"></div>
+
+          <!-- Mobile nav header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;position:relative;z-index:1;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="sphere-icon" style="width:24px;height:24px;"></div>
+              <span style="font-size:16px;font-weight:800;letter-spacing:-0.4px;">Sphere</span>
+            </div>
+            <div class="avatar" style="width:30px;height:30px;font-size:10px;">LS</div>
+          </div>
+
+          <!-- Greeting -->
+          <div style="margin-bottom:20px;position:relative;z-index:1;">
+            <div style="font-size:18px;font-weight:800;letter-spacing:-0.5px;" class="grad-shimmer">Good morning, Alex 👋</div>
+            <div style="font-size:12px;color:var(--t2);margin-top:4px;">2 deals closed overnight</div>
+          </div>
+
+          <!-- Compact stat cards -->
+          <div class="grid-2" style="gap:10px;margin-bottom:16px;position:relative;z-index:1;">
+            <div class="glass stat-card" style="padding:14px;">
+              <div style="font-size:20px;font-weight:800;">$28.4K</div>
+              <div style="font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:0.3px;margin-top:2px;">Total Spend</div>
+              <div style="font-size:11px;color:var(--green-light);margin-top:5px;">↑ 22%</div>
+            </div>
+            <div class="glass stat-card" style="padding:14px;">
+              <div style="font-size:20px;font-weight:800;">12</div>
+              <div style="font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:0.3px;margin-top:2px;">Active Deals</div>
+              <div style="font-size:11px;color:var(--amber-light);margin-top:5px;">4 negotiating</div>
+            </div>
+          </div>
+
+          <!-- AI activity -->
+          <div class="glass" style="padding:14px;margin-bottom:14px;position:relative;z-index:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <span>🤖</span>
+              <span style="font-size:13px;font-weight:700;">AI Activity</span>
+              <span class="notif-dot" style="margin-left:auto;"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--glass-el-bg);border:1px solid var(--glass-el-border);border-radius:var(--r-sm);">
+              <span class="tag tag-amber" style="font-size:10px;">Active</span>
+              <span style="font-size:12px;font-weight:500;">Negotiating with Glow Talk…</span>
+            </div>
+          </div>
+
+          <!-- Quick action buttons -->
+          <div style="display:flex;gap:8px;position:relative;z-index:1;">
+            <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;font-size:12px;" onclick="navigate('screen-marketplace')">Browse</button>
+            <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;font-size:12px;" onclick="navigate('screen-deal-flow')">Deals</button>
+          </div>
+        </div>
+
+        <!-- Bottom Tab Bar -->
+        <div class="bottom-nav" style="position:static;height:80px;padding:0 4px 16px;">
+          <div class="bottom-nav-item active" onclick="navigate('screen-brand-dashboard')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,1)" stroke-width="1.8" stroke-linecap="round">
+              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            <span style="color:var(--violet-light);">Home</span>
+          </div>
+          <div class="bottom-nav-item" onclick="navigate('screen-marketplace')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <span>Search</span>
+          </div>
+          <div class="bottom-nav-item" onclick="navigate('screen-deal-flow')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.8" stroke-linecap="round">
+              <path d="M17 20h5v-2a3 3 0 00-5.356-1.857"/><path d="M9 20H4v-2a3 3 0 015.356-1.857"/><circle cx="12" cy="7" r="4"/><path d="M12 11v9"/>
+            </svg>
+            <span>Deals</span>
+          </div>
+          <div class="bottom-nav-item" onclick="navigate('screen-co-dashboard')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.8" stroke-linecap="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <span>Analytics</span>
+          </div>
+          <div class="bottom-nav-item" onclick="navigate('screen-settings')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+            </svg>
+            <span>Profile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="nav" style="background:rgba(7,7,16,0.85);">
+    <div class="nav-logo"><div class="sphere-icon"></div>Sphere</div>
+    <div style="font-size:12px;color:var(--t2);">Mobile Responsive Preview</div>
+    <button class="btn btn-ghost btn-sm" onclick="navigate('screen-brand-dashboard')">← Back to Dashboard</button>
+  </nav>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     JavaScript
+══════════════════════════════════════════════════════ -->
+<script>
+let currentScreen = 'screen-landing';
+
+function navigate(screenId) {
+  if (screenId === currentScreen) return;
+  const current = document.getElementById(currentScreen);
+  const next    = document.getElementById(screenId);
+  if (!current || !next) return;
+
+  current.style.opacity = '0';
+  setTimeout(() => {
+    current.style.display = 'none';
+    current.classList.remove('active', 'fade-in');
+    next.style.display = 'flex';
+    next.style.opacity = '0';
+    void next.offsetWidth; // reflow
+    next.classList.add('active', 'fade-in');
+    next.style.opacity = '1';
+    currentScreen = screenId;
+  }, 200);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function onboardingComplete() {
+  showToast('🚀 Campaign launched! AI agents are on it.');
+  setTimeout(() => navigate('screen-brand-dashboard'), 700);
+}
+
+function coOnboardingComplete() {
+  showToast('🎉 Community profile live! Welcome to Sphere.');
+  setTimeout(() => navigate('screen-co-dashboard'), 700);
+}
+
+function sendChat() {
+  const input = document.getElementById('chat-input');
+  const val = input.value.trim();
+  if (!val) return;
+  const msgs = document.getElementById('chat-messages');
+  // Add user bubble
+  const userDiv = document.createElement('div');
+  userDiv.style.display = 'flex';
+  userDiv.style.justifyContent = 'flex-end';
+  userDiv.innerHTML = `<div class="chat-bubble user">${val}</div>`;
+  msgs.appendChild(userDiv);
+  input.value = '';
+  msgs.scrollTop = msgs.scrollHeight;
+  // Show AI typing, then respond
+  setTimeout(() => {
+    const typingDiv = document.createElement('div');
+    typingDiv.id = 'ai-typing';
+    typingDiv.innerHTML = `<div class="chat-bubble ai" style="display:inline-block;"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>`;
+    msgs.appendChild(typingDiv);
+    msgs.scrollTop = msgs.scrollHeight;
+    setTimeout(() => {
+      typingDiv.remove();
+      const aiDiv = document.createElement('div');
+      aiDiv.innerHTML = `<div class="chat-bubble ai">Got it! I've sent a counter at <strong>$2,700</strong>. The moderator typically responds within a few hours. I'll keep you updated.</div>`;
+      msgs.appendChild(aiDiv);
+      msgs.scrollTop = msgs.scrollHeight;
+    }, 1800);
+  }, 600);
+}
+
+function toggleNiche(el) {
+  if (el.classList.contains('tag-violet') || el.classList.contains('tag-cyan')) {
+    el.className = 'tag niche-tag';
+    el.style.cssText = 'cursor:pointer;background:var(--glass-el-bg);border:1px solid var(--glass-el-border);padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600;';
+  } else {
+    el.className = 'tag tag-violet niche-tag selected';
+    el.style.cssText = 'cursor:pointer;';
+  }
+}
+
+// Keyboard shortcut: press M to toggle mobile view
+document.addEventListener('keydown', e => {
+  if (e.key === 'm' || e.key === 'M') navigate('screen-mobile');
+});
+
+// Animate screen in
+document.querySelectorAll('.screen').forEach(s => {
+  s.addEventListener('animationend', () => s.classList.remove('fade-in'));
+});
+</script>
+
+</body>
+</html>

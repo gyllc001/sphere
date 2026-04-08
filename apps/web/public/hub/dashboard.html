@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sphere Ops Dashboard</title>
+<style>
+  :root {
+    --bg:       #080b0f;
+    --surface:  #0e1318;
+    --border:   #1a2230;
+    --text:     #e2e8f0;
+    --muted:    #4a5568;
+    --dim:      #718096;
+    --accent:   #38bdf8;
+    --green:    #34d399;
+    --yellow:   #fbbf24;
+    --red:      #f87171;
+    --purple:   #a78bfa;
+    --font:     -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+    --mono:     'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 28px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-left { display: flex; align-items: baseline; gap: 14px; }
+  .logo { font-size: 13px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+  .header-subtitle { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .refresh-status { font-size: 11px; color: var(--muted); font-family: var(--mono); display: flex; align-items: center; gap: 6px; }
+  .refresh-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .timestamp { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+  /* ── Status banner ── */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 28px;
+    border-bottom: 1px solid rgba(52,211,153,0.2);
+    font-size: 12px;
+  }
+  .status-bar.success { background: rgba(52,211,153,0.07); color: var(--green); }
+  .status-bar.warning { background: rgba(251,191,36,0.07); color: var(--yellow); border-color: rgba(251,191,36,0.2); }
+  .status-bar .status-icon { font-size: 13px; flex-shrink: 0; }
+
+  /* ── Goal bar ── */
+  .goal-bar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 11px 28px;
+    background: rgba(56,189,248,0.04);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px; color: var(--dim);
+  }
+  .goal-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); flex-shrink: 0; }
+  .goal-text { flex: 1; }
+  .goal-day { font-family: var(--mono); font-size: 11px; color: var(--accent); flex-shrink: 0; }
+
+  /* ── Metrics ── */
+  .metrics-bar { display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 1px solid var(--border); }
+  .metric { padding: 20px 28px; border-right: 1px solid var(--border); }
+  .metric:last-child { border-right: none; }
+  .metric-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .metric-value { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); line-height: 1; }
+  .metric-sub { font-size: 11px; color: var(--dim); margin-top: 4px; }
+  .metric-value.accent { color: var(--accent); }
+  .metric-value.green  { color: var(--green); }
+
+  /* ── Layout ── */
+  .main { display: grid; grid-template-columns: 1fr 360px; }
+
+  /* ── Panels ── */
+  .panel { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px 12px; border-bottom: 1px solid var(--border); }
+  .panel-title { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
+  .panel-badge { font-size: 10px; font-family: var(--mono); padding: 2px 8px; border-radius: 3px; background: var(--border); color: var(--dim); }
+  .panel-badge.green { background: rgba(52,211,153,0.12); color: var(--green); }
+
+  /* ── Agent tree ── */
+  .agent-list { list-style: none; }
+  .agent-row { display: flex; align-items: center; gap: 10px; padding: 10px 24px; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .agent-row:last-child { border-bottom: none; }
+  .agent-row:hover { background: rgba(255,255,255,0.02); }
+  .agent-indent-1 { padding-left: 44px; }
+  .agent-indent-2 { padding-left: 64px; }
+  .agent-tree-line { color: var(--border); font-size: 11px; flex-shrink: 0; width: 10px; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .status-dot.running { background: var(--green); animation: pulse 1.5s ease-in-out infinite; }
+  .status-dot.idle    { background: var(--muted); }
+  .agent-name { font-size: 13px; color: var(--text); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .agent-status-label { font-size: 10px; font-family: var(--mono); padding: 2px 7px; border-radius: 3px; flex-shrink: 0; }
+  .agent-status-label.running { background: rgba(52,211,153,0.12); color: var(--green); }
+  .agent-status-label.idle    { background: rgba(74,85,104,0.2);   color: var(--muted); }
+  .agent-hb { font-size: 10px; font-family: var(--mono); color: var(--muted); white-space: nowrap; flex-shrink: 0; width: 110px; text-align: right; }
+
+  /* ── Pipeline table ── */
+  .pipeline-table { width: 100%; border-collapse: collapse; }
+  .pipeline-table thead th { padding: 10px 24px 8px; text-align: left; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .pipeline-table tbody td { padding: 11px 24px; font-size: 12px; border-bottom: 1px solid var(--border); color: var(--dim); }
+  .pipeline-table tbody tr:last-child td { border-bottom: none; }
+  .pipeline-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+  .pipeline-table tbody td:first-child { color: var(--text); font-weight: 500; }
+
+  .status-pill { display: inline-block; font-size: 9px; font-family: var(--mono); font-weight: 600; letter-spacing: 0.08em; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; white-space: nowrap; }
+  .pill-approved    { background: rgba(52,211,153,0.12);  color: var(--green); }
+  .pill-identified  { background: rgba(74,85,104,0.15);   color: var(--muted); }
+  .pill-sent        { background: rgba(56,189,248,0.15);  color: var(--accent); }
+  .pill-replied     { background: rgba(52,211,153,0.2);   color: var(--green); }
+
+  /* ── Outbox status panel ── */
+  .outbox-item { padding: 13px 22px; border-bottom: 1px solid var(--border); }
+  .outbox-item:last-child { border-bottom: none; }
+  .outbox-item:hover { background: rgba(52,211,153,0.02); }
+  .outbox-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .outbox-company { font-size: 13px; color: var(--text); font-weight: 500; }
+  .outbox-contact { font-size: 10px; color: var(--dim); flex-shrink: 0; }
+  .outbox-subject { font-size: 11px; color: var(--dim); margin-top: 3px; line-height: 1.4; }
+  .outbox-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+  .outbox-date { font-size: 10px; font-family: var(--mono); color: var(--muted); }
+
+  /* ── Content queue ── */
+  .queue-empty { padding: 32px 24px; text-align: center; color: var(--muted); font-size: 12px; }
+
+  /* ── Activity feed ── */
+  .activity-list { list-style: none; }
+  .activity-item { padding: 11px 22px; border-bottom: 1px solid var(--border); }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-top { display: flex; align-items: baseline; gap: 8px; justify-content: space-between; }
+  .activity-agent { font-size: 11px; font-weight: 600; color: var(--accent); white-space: nowrap; flex-shrink: 0; }
+  .activity-time  { font-size: 10px; font-family: var(--mono); color: var(--muted); white-space: nowrap; }
+  .activity-action { font-size: 12px; color: var(--dim); line-height: 1.4; margin-top: 2px; }
+  .activity-action.highlight { color: var(--green); }
+
+  /* ── Right col ── */
+  .right-col { display: flex; flex-direction: column; border-bottom: 1px solid var(--border); }
+  .right-col .panel { border-right: none; flex: 0 0 auto; }
+  .right-col .panel:last-child { border-bottom: none; flex: 1; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <span class="logo">Sphere</span>
+    <span class="header-subtitle">Ops Dashboard</span>
+  </div>
+  <div class="header-right">
+    <span class="refresh-status">
+      <span class="refresh-dot"></span>
+      <span id="countdown">60s</span>
+    </span>
+    <span class="timestamp" id="ts"></span>
+  </div>
+</header>
+
+<div class="status-bar success">
+  <span class="status-icon">&#10003;</span>
+  <span><strong>All 5 outreach emails approved by board</strong> — Sales &amp; Outreach Agent sending to Olipop, AG1, Hexclad, Ridge Wallet, Mudwater</span>
+</div>
+
+<div class="goal-bar">
+  <span class="goal-label">Sprint Goal</span>
+  <span class="goal-text">10 paying brand customers in 90 days &mdash; $50k MRR by month 6</span>
+  <span class="goal-day" id="day-counter"></span>
+</div>
+
+<!-- ── Key Metrics ── -->
+<div class="metrics-bar">
+  <div class="metric">
+    <div class="metric-label">Total Agents</div>
+    <div class="metric-value accent">10</div>
+    <div class="metric-sub">1 running now</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Prospects</div>
+    <div class="metric-value accent">20</div>
+    <div class="metric-sub">5 approved to send</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Board Approvals</div>
+    <div class="metric-value green">0</div>
+    <div class="metric-sub">Queue clear &#10003;</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Outreach Sent</div>
+    <div class="metric-value">0</div>
+    <div class="metric-sub">Sending in progress</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">MRR</div>
+    <div class="metric-value">$0</div>
+    <div class="metric-sub">Target: $50k / mo6</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ── Agent Status ── -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Agent Status</span>
+      <span class="panel-badge">10 agents</span>
+    </div>
+    <ul class="agent-list">
+
+      <li class="agent-row">
+        <span class="status-dot idle"></span>
+        <span class="agent-name">CEO</span>
+        <span class="agent-status-label idle">idle</span>
+        <span class="agent-hb">23:11 UTC</span>
+      </li>
+
+      <li class="agent-row agent-indent-1">
+        <span class="agent-tree-line">└</span>
+        <span class="status-dot idle"></span>
+        <span class="agent-name">Growth Manager</span>
+        <span class="agent-status-label idle">idle</span>
+        <span class="agent-hb">23:10 UTC</span>
+      </li>
+
+      <li class="agent-row agent-indent-2">
+        <span class="agent-tree-line">└</span>
+        <span class="status-dot idle"></span>
+        <span class="agent-name">Sales &amp; Outreach Agent</span>
+        <span class="agent-status-label idle">idle</span>
+        <span class="agent-hb">23:09 UTC</span>
+      </li>
+
+      <li class="agent-row agent-indent-1">
+        <span class="agent-tree-line">└</span>
+        <span class="status-dot idle"></span>
+        <span class="agent-name">Content Ops Manager</span>
+        <span class="agent-status-label idle">idle</span>
+        <span class="agent-hb">23:09 UTC</span>
+      </li>
+
+      <li class="agent-row agent-indent-2">
+        <span class="agent-tree-line">└</span>
+        <span class="status-dot idle"></span>
+        <span class="agent-name">Creator Builder Agent</span>
+        <span class="agent-status-label idle">idle</span>
+        <span class="agent-hb">22:39 UTC</span>
+      </li>
+
+      <li class="agent-row agent-indent-2">
+        <span class="agent-tree-line">└</span>
+        <span class="status-dot idle"></span>
+        <span class="agent-name">Content Generator Agent</span>
+        <span class="agent-status-label idle">idle</span>
+        <span class="agent-hb">22:44 UTC</span>
+      </li>
+
+      <li class="agent-row agent-indent-2">
+        <span class="agent-tree-line">└</span>
+        <span class="status-dot idle"></span>
+        <span class="agent-name">QA Agent</span>
+        <span class="agent-status-label idle">idle</span>
+        <span class="agent-hb">23:19 UTC</span>
+      </li>
+
+      <li class="agent-row agent-indent-2">
+        <span class="agent-tree-line">└</span>
+        <span class="status-dot idle"></span>
+        <span class="agent-name">Analytics Agent</span>
+        <span class="agent-status-label idle">idle</span>
+        <span class="agent-hb">22:55 UTC</span>
+      </li>
+
+      <li class="agent-row agent-indent-2">
+        <span class="agent-tree-line">└</span>
+        <span class="status-dot idle"></span>
+        <span class="agent-name">Publisher Agent</span>
+        <span class="agent-status-label idle">idle</span>
+        <span class="agent-hb">23:20 UTC</span>
+      </li>
+
+      <li class="agent-row agent-indent-1">
+        <span class="agent-tree-line">└</span>
+        <span class="status-dot running"></span>
+        <span class="agent-name">Frontend Developer</span>
+        <span class="agent-status-label running">running</span>
+        <span class="agent-hb">active</span>
+      </li>
+
+    </ul>
+  </div>
+
+  <!-- ── Right col ── -->
+  <div class="right-col">
+
+    <!-- Outbox / Approval Status -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Outbox Status</span>
+        <span class="panel-badge green">5 approved</span>
+      </div>
+      <div class="outbox-item">
+        <div class="outbox-top">
+          <span class="outbox-company">Olipop</span>
+          <span class="outbox-contact">VP Marketing</span>
+        </div>
+        <div class="outbox-subject">Keeping up with Olipop's TikTok cadence at scale</div>
+        <div class="outbox-meta"><span class="status-pill pill-approved">APPROVED</span><span class="outbox-date">2026-04-07</span></div>
+      </div>
+      <div class="outbox-item">
+        <div class="outbox-top">
+          <span class="outbox-company">Athletic Greens (AG1)</span>
+          <span class="outbox-contact">Head of Growth</span>
+        </div>
+        <div class="outbox-subject">The gap your influencer roster leaves between campaigns</div>
+        <div class="outbox-meta"><span class="status-pill pill-approved">APPROVED</span><span class="outbox-date">2026-04-07</span></div>
+      </div>
+      <div class="outbox-item">
+        <div class="outbox-top">
+          <span class="outbox-company">Hexclad</span>
+          <span class="outbox-contact">CMO</span>
+        </div>
+        <div class="outbox-subject">Between Gordon Ramsay campaigns, your feed still needs to post</div>
+        <div class="outbox-meta"><span class="status-pill pill-approved">APPROVED</span><span class="outbox-date">2026-04-07</span></div>
+      </div>
+      <div class="outbox-item">
+        <div class="outbox-top">
+          <span class="outbox-company">Ridge Wallet</span>
+          <span class="outbox-contact">Head of Marketing</span>
+        </div>
+        <div class="outbox-subject">Your ads are doing work — your organic feed should be too</div>
+        <div class="outbox-meta"><span class="status-pill pill-approved">APPROVED</span><span class="outbox-date">2026-04-07</span></div>
+      </div>
+      <div class="outbox-item">
+        <div class="outbox-top">
+          <span class="outbox-company">Mudwater</span>
+          <span class="outbox-contact">Founder/CEO</span>
+        </div>
+        <div class="outbox-subject">Your brand has a voice. It shouldn't go quiet when you're busy.</div>
+        <div class="outbox-meta"><span class="status-pill pill-approved">APPROVED</span><span class="outbox-date">2026-04-07</span></div>
+      </div>
+    </div>
+
+    <!-- Content Queue -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Content Queue Health</span>
+        <span class="panel-badge">0 brands</span>
+      </div>
+      <div class="queue-empty">No active brands yet<br>
+        <span style="font-size:10px;color:#3a4553;display:block;margin-top:4px;">Populates when first brand is onboarded</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Outreach Pipeline ── -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Outreach Pipeline</span>
+      <span class="panel-badge">20 prospects &nbsp;·&nbsp; 5 approved</span>
+    </div>
+    <table class="pipeline-table">
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Decision Maker</th>
+          <th>Industry</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Olipop</td><td>VP Marketing</td><td>Beverage / CPG</td><td><span class="status-pill pill-approved">APPROVED</span></td></tr>
+        <tr><td>Athletic Greens (AG1)</td><td>Head of Growth</td><td>Health &amp; Wellness</td><td><span class="status-pill pill-approved">APPROVED</span></td></tr>
+        <tr><td>Hexclad</td><td>CMO</td><td>DTC Cookware</td><td><span class="status-pill pill-approved">APPROVED</span></td></tr>
+        <tr><td>Ridge Wallet</td><td>Head of Marketing</td><td>DTC Accessories</td><td><span class="status-pill pill-approved">APPROVED</span></td></tr>
+        <tr><td>Mudwater</td><td>Founder / CEO</td><td>Health &amp; Wellness</td><td><span class="status-pill pill-approved">APPROVED</span></td></tr>
+        <tr><td>Obvi</td><td>VP Marketing</td><td>DTC Supplements</td><td><span class="status-pill pill-identified">IDENTIFIED</span></td></tr>
+        <tr><td>Jones Road Beauty</td><td>Head of Digital</td><td>Beauty / DTC</td><td><span class="status-pill pill-identified">IDENTIFIED</span></td></tr>
+        <tr><td>Caraway Home</td><td>Head of Brand</td><td>DTC Kitchenware</td><td><span class="status-pill pill-identified">IDENTIFIED</span></td></tr>
+        <tr><td>Graza</td><td>Head of Marketing</td><td>Food &amp; Beverage</td><td><span class="status-pill pill-identified">IDENTIFIED</span></td></tr>
+        <tr><td>Poppi</td><td>VP Brand Marketing</td><td>Beverage / CPG</td><td><span class="status-pill pill-identified">IDENTIFIED</span></td></tr>
+        <tr><td>True Classic</td><td>CMO</td><td>DTC Apparel</td><td><span class="status-pill pill-identified">IDENTIFIED</span></td></tr>
+        <tr><td>Chamberlain Coffee</td><td>Head of Marketing</td><td>Beverage / Lifestyle</td><td><span class="status-pill pill-identified">IDENTIFIED</span></td></tr>
+        <tr><td>Liquid Death</td><td>VP Content</td><td>Beverage / CPG</td><td><span class="status-pill pill-identified">IDENTIFIED</span></td></tr>
+        <tr><td>Bloom Nutrition</td><td>Head of Social</td><td>Health &amp; Wellness</td><td><span class="status-pill pill-identified">IDENTIFIED</span></td></tr>
+        <tr><td>Beis Travel</td><td>Head of Digital Marketing</td><td>DTC Travel Goods</td><td><span class="status-pill pill-identified">IDENTIFIED</span></td></tr>
+        <tr>
+          <td style="color:var(--muted)" colspan="4">+ 5 more identified (Our Place, Lume, Kettle &amp; Fire, Sakara Life, Eight Sleep)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Activity Feed ── -->
+  <div class="right-col" style="border-bottom:none;">
+    <div class="panel" style="border-bottom:none; flex:1;">
+      <div class="panel-header">
+        <span class="panel-title">Activity Feed</span>
+        <span class="panel-badge">recent</span>
+      </div>
+      <ul class="activity-list">
+        <li class="activity-item">
+          <div class="activity-top">
+            <span class="activity-agent">Board</span>
+            <span class="activity-time">today</span>
+          </div>
+          <div class="activity-action highlight">Approved all 5 outreach emails — SPH-13 resolved</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-top">
+            <span class="activity-agent">Growth Manager</span>
+            <span class="activity-time">today</span>
+          </div>
+          <div class="activity-action">Escalated 5 emails &gt;24h pending — SPH-13</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-top">
+            <span class="activity-agent">Sales &amp; Outreach</span>
+            <span class="activity-time">yesterday</span>
+          </div>
+          <div class="activity-action">Wrote 5 outreach emails → /outbox.md</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-top">
+            <span class="activity-agent">Growth Manager</span>
+            <span class="activity-time">yesterday</span>
+          </div>
+          <div class="activity-action">Wrote 5 prospect briefs → /sales/brief-2026-04-07.md</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-top">
+            <span class="activity-agent">Frontend Developer</span>
+            <span class="activity-time">yesterday</span>
+          </div>
+          <div class="activity-action">Built ops dashboard — SPH-11</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-top">
+            <span class="activity-agent">CEO</span>
+            <span class="activity-time">Apr 6</span>
+          </div>
+          <div class="activity-action">Hired Frontend Developer — SPH-10</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-top">
+            <span class="activity-agent">CEO</span>
+            <span class="activity-time">Apr 6</span>
+          </div>
+          <div class="activity-action">Created Week 1 Operating Plan — SPH-9</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-top">
+            <span class="activity-agent">CEO</span>
+            <span class="activity-time">Apr 6</span>
+          </div>
+          <div class="activity-action">Content ops infrastructure ready — SPH-8</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-top">
+            <span class="activity-agent">Content Ops Mgr</span>
+            <span class="activity-time">Apr 6</span>
+          </div>
+          <div class="activity-action">Created Analytics Agent — SPH-7</div>
+        </li>
+        <li class="activity-item">
+          <div class="activity-top">
+            <span class="activity-agent">Growth Manager</span>
+            <span class="activity-time">Apr 6</span>
+          </div>
+          <div class="activity-action">Created Sales &amp; Outreach Agent — SPH-2</div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function formatTs(d) {
+    return d.toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
+  }
+  function updateTs() {
+    const el = document.getElementById('ts');
+    if (el) el.textContent = formatTs(new Date());
+  }
+  function updateDayCounter() {
+    const start = new Date('2026-04-06T00:00:00Z');
+    const day = Math.floor((Date.now() - start) / 86400000) + 1;
+    const el = document.getElementById('day-counter');
+    if (el) el.textContent = `Day ${day} / 90 (${Math.min(100,Math.round(day/90*100))}%)`;
+  }
+  let remaining = 60;
+  function tick() {
+    remaining--;
+    const el = document.getElementById('countdown');
+    if (el) el.textContent = remaining + 's';
+    if (remaining <= 0) location.reload();
+  }
+  updateTs(); updateDayCounter();
+  setInterval(updateTs, 1000);
+  setInterval(tick, 1000);
+</script>
+</body>
+</html>

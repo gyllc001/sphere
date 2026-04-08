@@ -22,45 +22,44 @@ async function runMigrations() {
   }
 
   // Always apply missing columns idempotently — fixes journal/DB drift.
-  // Each ALTER TABLE uses IF NOT EXISTS so safe to run on every deploy.
+  // Each statement runs in its own try/catch so one failure never blocks others.
   console.log('[migrate] Applying idempotent schema corrections...');
   try {
-    await pool.query(`
-      DO $$ BEGIN
-        CREATE TYPE "public"."subscription_tier" AS ENUM('starter', 'growth', 'scale');
-      EXCEPTION WHEN duplicate_object THEN NULL; END $$
-    `);
-    const brandCols = [
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS stripe_customer_id text`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS stripe_subscription_id text`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS subscription_tier "subscription_tier"`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS subscription_status varchar(50)`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS partnership_limit integer NOT NULL DEFAULT 0`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS wallet_balance_cents integer NOT NULL DEFAULT 0`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS email_verification_token text`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS email_verification_token_expires_at timestamp`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS email_verified_at timestamp`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS password_reset_token text`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS password_reset_token_expires_at timestamp`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS tos_accepted_at timestamp`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS tos_version varchar(50)`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS brand_safety_categories text[] NOT NULL DEFAULT '{}'`,
-      `ALTER TABLE brands ADD COLUMN IF NOT EXISTS brand_safety_keywords text[] NOT NULL DEFAULT '{}'`,
-      `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS email_verification_token text`,
-      `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS email_verification_token_expires_at timestamp`,
-      `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS email_verified_at timestamp`,
-      `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS password_reset_token text`,
-      `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS password_reset_token_expires_at timestamp`,
-      `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS tos_accepted_at timestamp`,
-      `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS tos_version varchar(50)`,
-    ];
-    for (const stmt of brandCols) {
+    await pool.query(`DO $$ BEGIN CREATE TYPE "public"."subscription_tier" AS ENUM('starter', 'growth', 'scale'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
+  } catch (e: any) { console.error('[migrate] subscription_tier enum:', e.message); }
+
+  const schemaCols = [
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS stripe_customer_id text`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS stripe_subscription_id text`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS subscription_tier "subscription_tier"`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS subscription_status varchar(50)`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS partnership_limit integer NOT NULL DEFAULT 0`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS wallet_balance_cents integer NOT NULL DEFAULT 0`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS email_verification_token text`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS email_verification_token_expires_at timestamp`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS email_verified_at timestamp`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS password_reset_token text`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS password_reset_token_expires_at timestamp`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS tos_accepted_at timestamp`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS tos_version varchar(50)`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS brand_safety_categories text[] NOT NULL DEFAULT '{}'`,
+    `ALTER TABLE brands ADD COLUMN IF NOT EXISTS brand_safety_keywords text[] NOT NULL DEFAULT '{}'`,
+    `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS email_verification_token text`,
+    `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS email_verification_token_expires_at timestamp`,
+    `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS email_verified_at timestamp`,
+    `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS password_reset_token text`,
+    `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS password_reset_token_expires_at timestamp`,
+    `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS tos_accepted_at timestamp`,
+    `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS tos_version varchar(50)`,
+  ];
+  for (const stmt of schemaCols) {
+    try {
       await pool.query(stmt);
+    } catch (e: any) {
+      console.error(`[migrate] Column correction failed (non-fatal): ${e.message}`);
     }
-    console.log('[migrate] Schema corrections applied.');
-  } catch (corrErr) {
-    console.error('[migrate] Schema corrections failed:', corrErr);
   }
+  console.log('[migrate] Schema corrections complete.');
 
   // Seed test accounts if they don't exist.
   try {

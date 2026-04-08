@@ -63,7 +63,7 @@ export default function BrandRegister() {
               value={form.name}
               onChange={(e) => update('name', e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div>
@@ -73,7 +73,7 @@ export default function BrandRegister() {
               value={form.email}
               onChange={(e) => update('email', e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div>
@@ -84,7 +84,7 @@ export default function BrandRegister() {
               onChange={(e) => update('password', e.target.value)}
               required
               minLength={8}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div>
@@ -94,7 +94,7 @@ export default function BrandRegister() {
               value={form.website}
               onChange={(e) => update('website', e.target.value)}
               placeholder="https://"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div>
@@ -104,7 +104,7 @@ export default function BrandRegister() {
               value={form.industry}
               onChange={(e) => update('industry', e.target.value)}
               placeholder="e.g. SaaS, Consumer, Health"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div>
@@ -113,20 +113,20 @@ export default function BrandRegister() {
               value={form.description}
               onChange={(e) => update('description', e.target.value)}
               rows={3}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
           >
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
         <p className="mt-4 text-sm text-gray-500 text-center">
           Already have an account?{' '}
-          <Link href="/brand/login" className="text-blue-600 hover:underline">
+          <Link href="/brand/login" className="text-indigo-600 hover:underline">
             Sign in
           </Link>
         </p>

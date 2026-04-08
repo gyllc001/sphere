@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { communityPortal, getToken, clearToken, type Opportunity } from '@/lib/api';
+import { SphereWordmark } from '@/components/SphereLogo';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -79,12 +80,13 @@ export default function OpportunitiesPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-lg font-bold text-gray-900">Sphere</Link>
+          <Link href="/"><SphereWordmark size={26} /></Link>
           <nav className="flex gap-4 text-sm">
             <Link href="/community/communities" className="text-gray-600 hover:text-gray-900">My Communities</Link>
             <Link href="/community/campaigns" className="text-gray-600 hover:text-gray-900">Browse Campaigns</Link>
-            <Link href="/community/opportunities" className="font-medium text-green-600">Inbound Offers</Link>
+            <Link href="/community/opportunities" className="font-medium text-indigo-600">Inbound Offers</Link>
             <Link href="/community/my-applications" className="text-gray-600 hover:text-gray-900">My Applications</Link>
+            <Link href="/messages" className="text-gray-600 hover:text-gray-900">Messages</Link>
           </nav>
         </div>
         <button
@@ -148,7 +150,7 @@ export default function OpportunitiesPage() {
                     <button
                       onClick={() => setCounterModal({ requestId: o.requestId })}
                       disabled={responding === o.requestId}
-                      className="border border-blue-500 text-blue-600 text-sm px-4 py-1.5 rounded hover:bg-blue-50 disabled:opacity-50"
+                      className="border border-indigo-500 text-indigo-600 text-sm px-4 py-1.5 rounded hover:bg-indigo-50 disabled:opacity-50"
                     >
                       Counter
                     </button>

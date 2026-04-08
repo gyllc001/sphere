@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { SphereWordmark } from '@/components/SphereLogo';
 import { communityPortal, getToken, clearToken, type CampaignApplication } from '@/lib/api';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -41,7 +42,7 @@ export default function MyApplicationsPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-lg font-bold text-gray-900">Sphere</Link>
+          <Link href="/" ><SphereWordmark size={26} /></Link>
           <nav className="flex gap-4 text-sm">
             <Link href="/community/communities" className="text-gray-600 hover:text-gray-900">My Communities</Link>
             <Link href="/community/campaigns" className="text-gray-600 hover:text-gray-900">Browse Campaigns</Link>

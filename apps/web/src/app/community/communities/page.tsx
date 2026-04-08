@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { SphereWordmark } from '@/components/SphereLogo';
 import { communityPortal, getToken, clearToken, type Community } from '@/lib/api';
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -49,7 +50,7 @@ export default function CommunitiesPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-lg font-bold text-gray-900">Sphere</Link>
+          <Link href="/" ><SphereWordmark size={26} /></Link>
           <nav className="flex gap-4 text-sm">
             <Link href="/community/communities" className="font-medium text-green-600">My Communities</Link>
             <Link href="/community/campaigns" className="text-gray-600 hover:text-gray-900">Browse Campaigns</Link>
@@ -125,7 +126,7 @@ export default function CommunitiesPage() {
                           href={`https://m.me/${c.adminFacebookPageId}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded hover:bg-blue-100"
+                          className="inline-flex items-center gap-1 text-xs bg-blue-50 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-50"
                         >
                           Messenger
                         </a>

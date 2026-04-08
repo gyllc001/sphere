@@ -111,7 +111,7 @@ export default function CommunityTopicsPage() {
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">{error}</div>
         )}
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-indigo-700">
           <strong>Why this matters:</strong> Brands can configure safety filters that exclude communities
           covering certain topics. Accurately tagging your community's content ensures you only receive
           partnership requests from brands that are a good fit.

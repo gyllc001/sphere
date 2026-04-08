@@ -174,7 +174,7 @@ export default function BrandSafetyPage() {
           {saved && <span className="text-sm text-green-600 font-medium">Saved!</span>}
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-indigo-700">
           <strong>How it works:</strong> When you run AI matching for a campaign, community owners whose
           content topics or descriptions match your exclusions are automatically removed from the results.
           Your settings apply to all future matching runs.

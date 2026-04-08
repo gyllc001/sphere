@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { SphereWordmark } from '@/components/SphereLogo';
 import { campaigns, getToken, type Campaign, type Partnership, type InboundApplication } from '@/lib/api';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
   accepted: 'bg-green-100 text-green-700',
   rejected: 'bg-red-100 text-red-600',
-  agreed: 'bg-blue-100 text-blue-700',
+  agreed: 'bg-indigo-50 text-indigo-700',
   contract_sent: 'bg-purple-100 text-purple-700',
   signed: 'bg-green-200 text-green-800',
   completed: 'bg-gray-200 text-gray-700',
@@ -148,7 +149,7 @@ export default function CampaignDetail() {
                     )}
                     <span>Applied: {new Date(a.createdAt).toLocaleDateString()}</span>
                     {a.dealId && (
-                      <Link href={`/deals/${a.dealId}`} className="text-blue-600 hover:underline">View deal →</Link>
+                      <Link href={`/deals/${a.dealId}`} className="text-indigo-600 hover:underline">View deal →</Link>
                     )}
                   </div>
 
@@ -226,7 +227,7 @@ export default function CampaignDetail() {
                             href={`https://m.me/${p.communityAdminFacebookPageId}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded hover:bg-blue-100"
+                            className="inline-flex items-center gap-1 text-xs bg-blue-50 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-50"
                           >
                             Facebook Messenger
                           </a>
@@ -240,7 +241,7 @@ export default function CampaignDetail() {
                       {p.deal && (
                         <Link
                           href={`/deals/${p.deal.id}`}
-                          className="text-xs text-blue-600 hover:underline"
+                          className="text-xs text-indigo-600 hover:underline"
                         >
                           View deal →
                         </Link>

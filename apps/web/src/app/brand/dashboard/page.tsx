@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { campaigns, getToken, clearToken, type Campaign } from '@/lib/api';
+import { SphereWordmark } from '@/components/SphereLogo';
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-600',
   active: 'bg-green-100 text-green-700',
-  matching: 'bg-blue-100 text-blue-700',
+  matching: 'bg-indigo-50 text-indigo-700',
   in_progress: 'bg-yellow-100 text-yellow-700',
   completed: 'bg-purple-100 text-purple-700',
   cancelled: 'bg-red-100 text-red-600',
@@ -59,11 +60,12 @@ export default function BrandDashboard() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-lg font-bold text-gray-900">Sphere</Link>
+          <Link href="/"><SphereWordmark size={26} /></Link>
           <nav className="flex gap-4 text-sm">
-            <Link href="/brand/dashboard" className="font-medium text-blue-600">Dashboard</Link>
+            <Link href="/brand/dashboard" className="font-medium text-indigo-600">Dashboard</Link>
             <Link href="/brand/campaigns/new" className="text-gray-600 hover:text-gray-900">New Campaign</Link>
             <Link href="/brand/safety" className="text-gray-600 hover:text-gray-900">Brand Safety</Link>
+            <Link href="/messages" className="text-gray-600 hover:text-gray-900">Messages</Link>
           </nav>
         </div>
         <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-gray-800">
@@ -76,7 +78,7 @@ export default function BrandDashboard() {
           <h1 className="text-2xl font-bold">Campaign Dashboard</h1>
           <Link
             href="/brand/campaigns/new"
-            className="bg-blue-600 text-white text-sm px-4 py-2 rounded-md hover:bg-blue-700"
+            className="bg-indigo-600 text-white text-sm px-4 py-2 rounded-md hover:bg-indigo-700"
           >
             + New Campaign
           </Link>
@@ -104,7 +106,7 @@ export default function BrandDashboard() {
         {data.campaigns.length === 0 ? (
           <div className="bg-white rounded-lg border p-12 text-center">
             <p className="text-gray-400 mb-4">No campaigns yet</p>
-            <Link href="/brand/campaigns/new" className="text-blue-600 text-sm hover:underline">
+            <Link href="/brand/campaigns/new" className="text-indigo-600 text-sm hover:underline">
               Create your first campaign →
             </Link>
           </div>

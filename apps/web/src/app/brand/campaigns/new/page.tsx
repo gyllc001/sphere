@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { SphereWordmark } from '@/components/SphereLogo';
 import { campaigns, getToken } from '@/lib/api';
 
 export default function NewCampaign() {
@@ -75,7 +76,7 @@ export default function NewCampaign() {
                 onChange={(e) => update('title', e.target.value)}
                 required
                 placeholder="e.g. Q3 Product Launch — Community Spotlight"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
@@ -87,7 +88,7 @@ export default function NewCampaign() {
                 required
                 rows={5}
                 placeholder="Describe your campaign in detail — what you want communities to do, what you're promoting, etc."
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
@@ -98,7 +99,7 @@ export default function NewCampaign() {
                 onChange={(e) => update('objectives', e.target.value)}
                 rows={2}
                 placeholder="Key goals: awareness, signups, conversions..."
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
@@ -109,7 +110,7 @@ export default function NewCampaign() {
                 value={form.targetAudience}
                 onChange={(e) => update('targetAudience', e.target.value)}
                 placeholder="e.g. Developers, indie hackers, startup founders"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
@@ -121,7 +122,7 @@ export default function NewCampaign() {
                   value={form.niche}
                   onChange={(e) => update('niche', e.target.value)}
                   placeholder="e.g. tech, fitness, finance"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <div>
@@ -132,7 +133,7 @@ export default function NewCampaign() {
                   onChange={(e) => update('minCommunitySize', e.target.value)}
                   min={0}
                   placeholder="e.g. 1000"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -146,7 +147,7 @@ export default function NewCampaign() {
                 min={0}
                 step="0.01"
                 placeholder="e.g. 5000"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
@@ -154,7 +155,7 @@ export default function NewCampaign() {
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-blue-600 text-white py-2 px-6 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                className="bg-indigo-600 text-white py-2 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
               >
                 {loading ? 'Creating...' : 'Create Campaign'}
               </button>

@@ -23,12 +23,12 @@ function StepIndicator({ status }: { status: string }) {
         <div key={step} className="flex items-center">
           <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold
             ${idx < currentIdx ? 'bg-green-500 text-white' : ''}
-            ${idx === currentIdx ? 'bg-blue-600 text-white' : ''}
+            ${idx === currentIdx ? 'bg-indigo-600 text-white' : ''}
             ${idx > currentIdx ? 'bg-gray-200 text-gray-500' : ''}
           `}>
             {idx < currentIdx ? '✓' : idx + 1}
           </div>
-          <p className={`ml-1 mr-4 text-xs ${idx === currentIdx ? 'font-medium text-blue-600' : 'text-gray-400'}`}>
+          <p className={`ml-1 mr-4 text-xs ${idx === currentIdx ? 'font-medium text-indigo-600' : 'text-gray-400'}`}>
             {STATUS_LABELS[step]}
           </p>
           {idx < STATUS_STEPS.length - 1 && (
@@ -179,7 +179,7 @@ export default function DealPage() {
             <span className={`text-sm font-medium px-3 py-1 rounded-full ${
               deal.status === 'signed' || deal.status === 'completed' ? 'bg-green-100 text-green-700' :
               deal.status === 'cancelled' ? 'bg-red-100 text-red-600' :
-              'bg-blue-100 text-blue-700'
+              'bg-indigo-50 text-indigo-700'
             }`}>
               {STATUS_LABELS[deal.status] || deal.status}
             </span>
@@ -227,7 +227,7 @@ export default function DealPage() {
             <button
               onClick={handleNegotiate}
               disabled={loading}
-              className="bg-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+              className="bg-indigo-600 text-white text-sm px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
             >
               {loading ? 'Running...' : 'Run AI Negotiation'}
             </button>

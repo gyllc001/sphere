@@ -42,6 +42,27 @@ const config: Config = {
           overlay: '#1C1C2E',
           border: '#2A2A3C',
         },
+        // Semantic colors (brand guide)
+        success: {
+          DEFAULT: '#10B981',
+          light: '#D1FAE5',
+          dark: '#34D399',
+        },
+        warning: {
+          DEFAULT: '#F59E0B',
+          light: '#FEF3C7',
+          dark: '#FCD34D',
+        },
+        danger: {
+          DEFAULT: '#EF4444',
+          light: '#FEE2E2',
+          dark: '#F87171',
+        },
+        info: {
+          DEFAULT: '#3B82F6',
+          light: '#DBEAFE',
+          dark: '#60A5FA',
+        },
       },
       fontFamily: {
         sans: ['Geist', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],

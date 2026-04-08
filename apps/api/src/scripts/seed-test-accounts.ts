@@ -26,7 +26,7 @@ async function seed() {
   if (existingBrand) {
     console.log(`Brand account already exists (${brandEmail}), skipping.`);
   } else {
-    const passwordHash = await bcrypt.hash('TestBrand123!', 12);
+    const passwordHash = await bcrypt.hash('TestBrand123!', 8);
     const [brand] = await db
       .insert(brands)
       .values({
@@ -55,7 +55,7 @@ async function seed() {
     console.log(`Community owner account already exists (${ownerEmail}), skipping.`);
     ownerId = existingOwner.id;
   } else {
-    const passwordHash = await bcrypt.hash('TestCommunity123!', 12);
+    const passwordHash = await bcrypt.hash('TestCommunity123!', 8);
     const [owner] = await db
       .insert(communityOwners)
       .values({

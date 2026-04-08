@@ -89,10 +89,15 @@ app.get('/health/db-tables', async (_req, res) => {
     results.drizzle_brands_nowhere_ok = true;
     results.drizzle_brands_nowhere_sample = rows.length;
 
-    // Test Drizzle ORM query with WHERE clause
+    // Test Drizzle ORM query with WHERE clause (id only)
     const whereRows = await drizzleDb.select({ id: brandsTable.id }).from(brandsTable).where(eqFn(brandsTable.email, 'nobody@nowhere.invalid')).limit(1);
     results.drizzle_brands_where_ok = true;
     results.drizzle_brands_where_rows = whereRows.length;
+
+    // Test Drizzle SELECT * (all columns) with WHERE — mirrors the login query exactly
+    const fullRows = await drizzleDb.select().from(brandsTable).where(eqFn(brandsTable.email, 'nobody@nowhere.invalid')).limit(1);
+    results.drizzle_brands_full_select_ok = true;
+    results.drizzle_brands_full_select_rows = fullRows.length;
   } catch (err) {
     results.drizzle_brands_error = String(err);
   }

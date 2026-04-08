@@ -9,13 +9,19 @@ async function runMigrations() {
   const db = drizzle(pool);
 
   console.log('Running database migrations...');
-  await migrate(db, { migrationsFolder: path.join(__dirname, '../../migrations') });
-  console.log('Migrations complete.');
-
-  await pool.end();
+  try {
+    await migrate(db, { migrationsFolder: path.join(__dirname, '../../migrations') });
+    console.log('Migrations complete.');
+  } catch (err) {
+    console.error('Migration failed (non-fatal):', err);
+  } finally {
+    // Always close the pool so this process exits and the API server can start.
+    // Without this, a failed migration leaves open pg handles and Node never exits.
+    await pool.end();
+  }
 }
 
 runMigrations().catch((err) => {
-  console.error('Migration failed (non-fatal):', err);
-  // Don't exit — let the server start; DB errors will surface at request time
+  console.error('Unexpected error in runMigrations:', err);
+  process.exit(0); // Non-fatal; let the API server start anyway
 });

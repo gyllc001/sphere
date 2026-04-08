@@ -1,4 +1,5 @@
 const path = require('path');
+const { withSentryConfig } = require('@sentry/nextjs');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -22,4 +23,18 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  // Suppress source map upload during local dev to avoid noise
+  silent: process.env.NODE_ENV !== 'production',
+  // Disable automatic instrumentation of routes to keep bundle size down
+  autoInstrumentServerFunctions: false,
+  autoInstrumentMiddleware: false,
+  // Avoid bundling Sentry debug statements in production
+  disableLogger: true,
+  // Don't fail build if Sentry upload fails
+  errorHandler: (err, invokeErr, compilation) => {
+    compilation.warnings.push('Sentry CLI Plugin: ' + err.message);
+  },
+});

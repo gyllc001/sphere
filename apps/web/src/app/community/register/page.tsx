@@ -28,7 +28,7 @@ export default function CommunityRegister() {
       };
       const { token } = await communityAuth.register(payload);
       setToken('community', token);
-      router.push('/community/communities');
+      router.push('/community/onboarding');
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {

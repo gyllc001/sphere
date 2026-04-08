@@ -101,8 +101,22 @@ export default function OpportunitiesPage() {
         )}
 
         {opportunities.length === 0 ? (
-          <div className="bg-white rounded-lg border p-12 text-center text-gray-400 text-sm">
-            No inbound opportunities yet. Make sure your communities are listed and active.
+          <div className="bg-white rounded-lg border p-12 text-center">
+            <div className="w-14 h-14 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-7 h-7 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 className="text-base font-semibold text-gray-800 mb-1">No inbound opportunities yet</h3>
+            <p className="text-sm text-gray-500 mb-2 max-w-sm mx-auto">
+              Brands are matched with your community automatically. Matches typically arrive within 24–48 hours of your listing going live.
+            </p>
+            <p className="text-xs text-gray-400">Make sure your communities are listed and approved.</p>
+            <div className="mt-5">
+              <Link href="/community/communities" className="text-green-600 text-sm hover:underline font-medium">
+                View my communities →
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">

@@ -210,41 +210,56 @@ export default function DealPage() {
         )}
 
         {isBrand && deal.status === 'agreed' && (
-          <div className="bg-white rounded-lg border p-5 flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">Generate Contract</p>
-              <p className="text-xs text-gray-500 mt-0.5">Create and send the contract to the community owner</p>
+          <>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+              <strong>Contract signing — beta notice:</strong> Contract signing is facilitated directly by the Sphere team during beta. Our team will reach out to finalize agreements. Full e-signature integration is coming soon.
             </div>
-            <button
-              onClick={handleGenerateContract}
-              disabled={loading}
-              className="bg-purple-600 text-white text-sm px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
-            >
-              {loading ? 'Generating...' : 'Generate & Send Contract'}
-            </button>
-          </div>
+            <div className="bg-white rounded-lg border p-5 flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Generate Contract</p>
+                <p className="text-xs text-gray-500 mt-0.5">Create and send the contract to the community owner</p>
+              </div>
+              <button
+                onClick={handleGenerateContract}
+                disabled={loading}
+                className="bg-purple-600 text-white text-sm px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+              >
+                {loading ? 'Generating...' : 'Generate & Send Contract'}
+              </button>
+            </div>
+          </>
         )}
 
         {isCommunity && deal.status === 'contract_sent' && (
-          <div className="bg-white rounded-lg border p-5 flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">Sign Contract</p>
-              <p className="text-xs text-gray-500 mt-0.5">Review the contract above and sign to confirm the deal</p>
+          <>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+              <strong>Contract signing — beta notice:</strong> The Sphere team will follow up with you directly to finalize this agreement. Full e-signature integration is coming soon.
             </div>
-            <button
-              onClick={handleSign}
-              disabled={loading}
-              className="bg-green-600 text-white text-sm px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
-            >
-              {loading ? 'Signing...' : 'Sign Contract'}
-            </button>
-          </div>
+            <div className="bg-white rounded-lg border p-5 flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Sign Contract</p>
+                <p className="text-xs text-gray-500 mt-0.5">Review the contract above and sign to confirm the deal</p>
+              </div>
+              <button
+                onClick={handleSign}
+                disabled={loading}
+                className="bg-green-600 text-white text-sm px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+              >
+                {loading ? 'Signing...' : 'Sign Contract'}
+              </button>
+            </div>
+          </>
         )}
 
         {deal.status === 'signed' && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-5 text-center">
-            <p className="font-semibold text-green-700">Deal Signed</p>
-            <p className="text-sm text-green-600 mt-1">The contract has been signed. Payment processing will follow.</p>
+          <div className="space-y-3">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+              <strong>Payment — beta notice:</strong> Your first transactions are facilitated directly by the Sphere team. Full payment integration (Stripe) is coming soon. Our team will be in touch to process payment.
+            </div>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-5 text-center">
+              <p className="font-semibold text-green-700">Deal Signed</p>
+              <p className="text-sm text-green-600 mt-1">The contract has been signed. The Sphere team will follow up on payment processing.</p>
+            </div>
           </div>
         )}
       </main>

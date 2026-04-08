@@ -202,7 +202,7 @@ router.post('/reset-password', async (req: Request, res: Response) => {
 
 router.get('/me', requireAuth, requireRole('brand'), async (req: Request, res: Response) => {
   const [brand] = await db
-    .select({ id: brands.id, name: brands.name, email: brands.email, slug: brands.slug, website: brands.website, industry: brands.industry, description: brands.description, status: brands.status })
+    .select({ id: brands.id, name: brands.name, email: brands.email, slug: brands.slug, website: brands.website, industry: brands.industry, description: brands.description, status: brands.status, createdAt: brands.createdAt })
     .from(brands)
     .where(eq(brands.id, req.auth!.sub))
     .limit(1);

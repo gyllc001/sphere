@@ -17,6 +17,7 @@ import adminRoutes from './routes/admin';
 import messageRoutes from './routes/messages';
 import disputeRoutes from './routes/disputes';
 import billingRoutes, { stripeWebhookHandler } from './routes/billing';
+import dealFeedbackRoutes from './routes/deal-feedback';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -63,6 +64,7 @@ app.use('/api/admin', express.text({ type: ['text/csv', 'text/plain'] }), adminR
 app.use('/api/messages', messageRoutes);
 app.use('/api/disputes', disputeRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/deals/:dealId/feedback', dealFeedbackRoutes);
 
 // Sentry error handler — must be before the generic error handler
 app.use(Sentry.expressErrorHandler());

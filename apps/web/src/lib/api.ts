@@ -42,6 +42,7 @@ export interface Brand {
   website?: string;
   industry?: string;
   description?: string;
+  createdAt?: string;
 }
 
 export const brandAuth = {
@@ -115,6 +116,7 @@ export interface CommunityOwner {
   email: string;
   bio?: string;
   avatarUrl?: string;
+  createdAt?: string;
 }
 
 export const communityAuth = {
@@ -667,5 +669,34 @@ export const disputesApi = {
       method: 'POST',
       token,
       body: JSON.stringify({ body }),
+    }),
+};
+
+// ── Deal Feedback ─────────────────────────────────────────────────────────────
+
+export interface DealFeedbackPayload {
+  dealQuality: number;
+  easeOfUse: number;
+  repeatIntent: 'yes' | 'no' | 'maybe';
+  openText?: string;
+}
+
+export interface DealFeedbackResponse extends DealFeedbackPayload {
+  id: string;
+  dealId: string;
+  userId: string;
+  userRole: string;
+  submittedAt: string;
+}
+
+export const feedbackApi = {
+  getMyFeedback: (token: string, dealId: string) =>
+    request<DealFeedbackResponse | null>(`/api/deals/${dealId}/feedback/me`, { token }),
+
+  submit: (token: string, dealId: string, data: DealFeedbackPayload) =>
+    request<DealFeedbackResponse>(`/api/deals/${dealId}/feedback`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify(data),
     }),
 };

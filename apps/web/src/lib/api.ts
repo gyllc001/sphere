@@ -471,3 +471,35 @@ export const messagesApi = {
       token,
     }),
 };
+
+// ── Disputes ──────────────────────────────────────────────────────────────────
+
+export interface Dispute {
+  id: string;
+  dealId: string;
+  openedBy: 'brand' | 'community_owner';
+  reason: string;
+  status: string;
+  resolvedByAdminNote: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+}
+
+export const disputesApi = {
+  open: (token: string, dealId: string, reason: string) =>
+    request<Dispute>('/api/disputes', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ dealId, reason }),
+    }),
+
+  get: (token: string, id: string) =>
+    request<Dispute & { comments: any[] }>(`/api/disputes/${id}`, { token }),
+
+  addComment: (token: string, id: string, body: string) =>
+    request('/api/disputes/${id}/comments', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ body }),
+    }),
+};

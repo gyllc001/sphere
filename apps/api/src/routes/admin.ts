@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '../db';
 import { communities, communityOwners } from '../db/schema';
 import { eq } from 'drizzle-orm';
+import { adminListDisputes, adminGetDispute, adminResolveDispute } from './disputes';
 
 const router = Router();
 
@@ -170,5 +171,11 @@ router.post('/communities/bulk-import', async (req: Request, res: Response) => {
     results,
   });
 });
+
+// ── Dispute review queue ───────────────────────────────────────────────────────
+
+router.get('/disputes', adminListDisputes);
+router.get('/disputes/:id', adminGetDispute);
+router.post('/disputes/:id/resolve', adminResolveDispute);
 
 export default router;

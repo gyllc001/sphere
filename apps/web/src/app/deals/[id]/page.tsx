@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { dealsApi, getToken, type Deal } from '@/lib/api';
+import { dealsApi, disputesApi, getToken, type Deal, type Dispute } from '@/lib/api';
 
 const STATUS_STEPS = ['agreed', 'contract_sent', 'signed', 'completed'];
 
@@ -50,6 +50,11 @@ export default function DealPage() {
   const [actionError, setActionError] = useState('');
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState<'brand' | 'community' | null>(null);
+  const [dispute, setDispute] = useState<Dispute | null>(null);
+  const [showDisputeForm, setShowDisputeForm] = useState(false);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputeLoading, setDisputeLoading] = useState(false);
+  const [disputeError, setDisputeError] = useState('');
 
   function getActiveToken(): { token: string; role: 'brand' | 'community' } | null {
     const brandToken = getToken('brand');
@@ -128,6 +133,26 @@ export default function DealPage() {
 
   const isBrand = role === 'brand';
   const isCommunity = role === 'community';
+
+  async function handleOpenDispute(e: React.FormEvent) {
+    e.preventDefault();
+    if (!disputeReason.trim() || !deal) return;
+    const auth = getActiveToken();
+    if (!auth) return;
+    setDisputeLoading(true);
+    setDisputeError('');
+    try {
+      const d = await disputesApi.open(auth.token, deal.id, disputeReason.trim());
+      setDispute(d);
+      setShowDisputeForm(false);
+    } catch (err: any) {
+      setDisputeError(err?.error ?? 'Failed to open dispute.');
+    } finally {
+      setDisputeLoading(false);
+    }
+  }
+
+  const canDispute = !dispute && ['active', 'signed', 'completed'].includes(deal.status);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -245,6 +270,77 @@ export default function DealPage() {
           <div className="bg-green-50 border border-green-200 rounded-lg p-5 text-center">
             <p className="font-semibold text-green-700">Deal Signed</p>
             <p className="text-sm text-green-600 mt-1">The contract has been signed. Payment processing will follow.</p>
+          </div>
+        )}
+
+        {/* Dispute section */}
+        {dispute && (
+          <div className={`rounded-lg border p-5 ${
+            dispute.status === 'open' || dispute.status === 'under_review'
+              ? 'bg-amber-50 border-amber-200'
+              : 'bg-gray-50 border-gray-200'
+          }`}>
+            <p className="font-semibold text-amber-800">
+              {dispute.status === 'open' && 'Dispute Submitted — Under Review'}
+              {dispute.status === 'under_review' && 'Dispute Under Review'}
+              {dispute.status === 'resolved_for_brand' && 'Dispute Resolved — In Brand\'s Favour'}
+              {dispute.status === 'resolved_for_community' && 'Dispute Resolved — In Community\'s Favour'}
+              {dispute.status === 'resolved_mutual' && 'Dispute Resolved — Mutual Agreement'}
+            </p>
+            <p className="text-sm text-amber-700 mt-1">{dispute.reason}</p>
+            {dispute.resolvedByAdminNote && (
+              <p className="text-sm text-gray-600 mt-2 italic">{dispute.resolvedByAdminNote}</p>
+            )}
+          </div>
+        )}
+
+        {canDispute && !showDisputeForm && (
+          <div className="text-center">
+            <button
+              onClick={() => setShowDisputeForm(true)}
+              className="text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Open a Dispute
+            </button>
+          </div>
+        )}
+
+        {showDisputeForm && (
+          <div className="bg-white border border-red-200 rounded-lg p-5">
+            <h3 className="font-semibold text-gray-900 mb-1">Open a Dispute</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Describe the issue. Our team will review and reach out to both parties.
+            </p>
+            {disputeError && (
+              <div className="mb-3 text-sm text-red-600 bg-red-50 rounded p-2">{disputeError}</div>
+            )}
+            <form onSubmit={handleOpenDispute} className="space-y-3">
+              <textarea
+                value={disputeReason}
+                onChange={(e) => setDisputeReason(e.target.value)}
+                placeholder="Describe what went wrong (minimum 10 characters)…"
+                rows={4}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+                required
+                minLength={10}
+              />
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={disputeLoading || disputeReason.trim().length < 10}
+                  className="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
+                >
+                  {disputeLoading ? 'Submitting…' : 'Submit Dispute'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowDisputeForm(false); setDisputeError(''); }}
+                  className="px-4 py-2 border border-gray-300 text-sm rounded hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         )}
       </main>

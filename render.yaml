@@ -6,7 +6,6 @@ services:
     # (it references packages/ and the workspace root package.json)
     dockerfilePath: apps/api/Dockerfile
     # Override CMD to run migrations before starting the server
-    startCommand: sh -c "node dist/db/migrate.js && echo 'MIGRATE_OK' && node dist/index.js"
     healthCheckPath: /health
     plan: free
     envVars:

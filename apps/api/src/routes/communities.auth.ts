@@ -42,7 +42,7 @@ router.post('/register', async (req: Request, res: Response) => {
     return res.status(409).json({ error: 'Email already registered' });
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await bcrypt.hash(password, 8);
   const verificationToken = crypto.randomBytes(32).toString('hex');
   const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
 
@@ -179,7 +179,7 @@ router.post('/reset-password', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Reset token has expired' });
   }
 
-  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  const passwordHash = await bcrypt.hash(parsed.data.password, 8);
   await db.update(communityOwners).set({
     passwordHash,
     passwordResetToken: null,

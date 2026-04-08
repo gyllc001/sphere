@@ -49,8 +49,8 @@ router.post('/:id/negotiate', async (req: Request, res: Response) => {
     const decision = await advanceNegotiation(req.params.id);
 
     // Send deal status emails when a deal is accepted or declined
-    if (decision.status === 'agreed' || decision.status === 'cancelled') {
-      const statusLabel = decision.status === 'agreed' ? 'accepted' : 'declined';
+    if (decision.action === 'accept' || decision.action === 'walkaway') {
+      const statusLabel = decision.action === 'accept' ? 'accepted' : 'declined';
       (async () => {
         try {
           const [updatedDeal] = await db.select().from(deals).where(eq(deals.id, req.params.id)).limit(1);

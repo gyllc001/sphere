@@ -6,12 +6,22 @@ import Link from 'next/link';
 import { communityAuth, setToken } from '@/lib/api';
 import { track, identifyUser } from '@/lib/analytics';
 
+const TOS_VERSION = '2026-04-08';
+
+const TOS_SUMMARY = [
+  'Creator payout processing fee: 10–15% deducted from payouts before disbursement',
+  'Wallet dispensement fee: 2.5% on all wallet transactions',
+  'Off-platform contact policy: 12-month circumvention prohibition — all communication must happen on Sphere',
+  'Violation may result in suspension and liquidated damages of 20% of deal value (min $500)',
+];
+
 export default function CommunityRegister() {
   const router = useRouter();
   const [form, setForm] = useState({ name: '', email: '', password: '', bio: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [tosExpanded, setTosExpanded] = useState(false);
 
   function update(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -28,6 +38,7 @@ export default function CommunityRegister() {
         email: form.email,
         password: form.password,
         ...(form.bio && { bio: form.bio }),
+        tosAccepted: true,
       };
       const { token, owner } = await communityAuth.register(payload);
       setToken('community', token);
@@ -93,6 +104,26 @@ export default function CommunityRegister() {
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
+          {/* ToS display */}
+          <div className="border border-gray-200 rounded-md overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setTosExpanded((v) => !v)}
+              className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              <span className="font-medium">Sphere Terms of Service (v{TOS_VERSION})</span>
+              <span className="text-gray-400">{tosExpanded ? '▲ Hide' : '▼ View'}</span>
+            </button>
+            {tosExpanded && (
+              <div className="px-3 py-3 text-xs text-gray-600 space-y-1.5 max-h-40 overflow-y-auto border-t border-gray-200">
+                <p className="font-medium text-gray-700">Key terms for community owners:</p>
+                {TOS_SUMMARY.map((item, i) => (
+                  <p key={i}>• {item}</p>
+                ))}
+                <p className="text-gray-400 mt-2">By checking below you agree to the full Sphere Terms of Service including brand subscription tiers, payout fees, wallet fees, and off-platform contact policy.</p>
+              </div>
+            )}
+          </div>
           <div className="flex items-start gap-2">
             <input
               id="terms"
@@ -103,10 +134,7 @@ export default function CommunityRegister() {
               className="mt-0.5 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
             />
             <label htmlFor="terms" className="text-sm text-gray-600">
-              I agree to the{' '}
-              <Link href="/terms" className="text-green-600 hover:underline">Terms of Service</Link>
-              {' '}and{' '}
-              <Link href="/privacy" className="text-green-600 hover:underline">Privacy Policy</Link>
+              I have read and accept the Sphere Terms of Service (v{TOS_VERSION}), including the payout processing fee (10–15%), wallet fees (2.5%), and off-platform contact policy.
             </label>
           </div>
           <button

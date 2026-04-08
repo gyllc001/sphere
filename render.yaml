@@ -7,6 +7,8 @@ services:
     dockerfilePath: apps/api/Dockerfile
     startCommand: node dist/db/migrate.js && node dist/index.js
     healthCheckPath: /health
+    branch: main
+    autoDeploy: true
     plan: free
     envVars:
       - key: DATABASE_URL
@@ -24,6 +26,7 @@ services:
         generateValue: true
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Required for admin routes (/api/admin/*). Set in Render dashboard.
       - key: ADMIN_API_KEY
         sync: false
 

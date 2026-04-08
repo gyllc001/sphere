@@ -54,15 +54,35 @@ interface RedditListing {
 
 const REDDIT_NICHES = [
   { query: 'technology', tags: ['technology'] },
+  { query: 'programming software development', tags: ['technology', 'education'] },
   { query: 'gaming', tags: ['gaming'] },
+  { query: 'esports competitive gaming', tags: ['gaming'] },
   { query: 'fitness health', tags: ['fitness', 'health'] },
+  { query: 'nutrition diet wellness', tags: ['fitness', 'health'] },
   { query: 'finance investing', tags: ['finance'] },
+  { query: 'cryptocurrency blockchain', tags: ['finance', 'technology'] },
+  { query: 'personal finance budgeting', tags: ['finance'] },
   { query: 'food cooking recipes', tags: ['food'] },
+  { query: 'baking desserts', tags: ['food'] },
   { query: 'travel adventure', tags: ['travel'] },
+  { query: 'backpacking hiking outdoors', tags: ['travel', 'fitness'] },
   { query: 'fashion style', tags: ['fashion'] },
+  { query: 'beauty skincare makeup', tags: ['fashion', 'health'] },
   { query: 'parenting families', tags: ['parenting'] },
   { query: 'education learning', tags: ['education'] },
+  { query: 'science research', tags: ['education', 'technology'] },
   { query: 'entertainment movies music', tags: ['entertainment'] },
+  { query: 'sports athletics', tags: ['sports'] },
+  { query: 'art design creativity', tags: ['art'] },
+  { query: 'photography cameras', tags: ['art', 'technology'] },
+  { query: 'pets animals', tags: ['lifestyle'] },
+  { query: 'home garden DIY', tags: ['lifestyle'] },
+  { query: 'mental health psychology', tags: ['health'] },
+  { query: 'business entrepreneurship startup', tags: ['business'] },
+  { query: 'cars automotive', tags: ['lifestyle'] },
+  { query: 'books reading literature', tags: ['education', 'entertainment'] },
+  { query: 'music instruments production', tags: ['entertainment', 'art'] },
+  { query: 'environment sustainability climate', tags: ['lifestyle'] },
 ];
 
 /** Fetch one page of subreddit search results */
@@ -83,7 +103,7 @@ async function fetchRedditPage(query: string, after: string | null): Promise<Red
   }
 }
 
-async function scrapeReddit(targetCount = 500): Promise<NewScrapedCommunity[]> {
+async function scrapeReddit(targetCount = 1500): Promise<NewScrapedCommunity[]> {
   const results: NewScrapedCommunity[] = [];
   const seen = new Set<string>();
 
@@ -92,7 +112,7 @@ async function scrapeReddit(targetCount = 500): Promise<NewScrapedCommunity[]> {
 
     let after: string | null = null;
     let pages = 0;
-    const maxPages = 3;
+    const maxPages = 5;
 
     while (pages < maxPages && results.length < targetCount) {
       const listing = await fetchRedditPage(niche.query, after);
@@ -203,14 +223,20 @@ async function upsertCommunities(communities: NewScrapedCommunity[]): Promise<nu
 
   let inserted = 0;
 
-  // Upsert by (platform, handle) — skip if already exists
+  // Upsert by (platform, handle) — update memberCount and scrapedAt on conflict
   const BATCH = 50;
   for (let i = 0; i < withHandle.length; i += BATCH) {
     const batch = withHandle.slice(i, i + BATCH);
     const result = await db
       .insert(scrapedCommunities)
       .values(batch)
-      .onConflictDoNothing({ target: [scrapedCommunities.platform, scrapedCommunities.handle] });
+      .onConflictDoUpdate({
+        target: [scrapedCommunities.platform, scrapedCommunities.handle],
+        set: {
+          memberCount: sql`excluded.member_count`,
+          scrapedAt: sql`now()`,
+        },
+      });
     inserted += (result.rowCount ?? 0);
   }
 

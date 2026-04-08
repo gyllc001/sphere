@@ -57,6 +57,9 @@ export const communityOwners = pgTable('community_owners', {
   passwordResetTokenExpiresAt: timestamp('password_reset_token_expires_at'),
   // Wallet: accumulated earnings from completed deals, awaiting withdrawal
   walletBalanceCents: integer('wallet_balance_cents').notNull().default(0),
+  // ToS acceptance
+  tosAcceptedAt: timestamp('tos_accepted_at'),
+  tosVersion: varchar('tos_version', { length: 50 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

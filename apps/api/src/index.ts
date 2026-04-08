@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { initSentry, Sentry } from './lib/sentry';
 initSentry(); // must be called before any other imports that might throw
 import express from 'express';
+import { runScraper, getScraperStats } from './services/scraper';
 import cors from 'cors';
 import helmet from 'helmet';
 import { Pool } from 'pg';
@@ -80,8 +81,54 @@ process.on('unhandledRejection', (reason) => {
   Sentry.captureException(reason);
 });
 
-app.listen(PORT, () => {
+// ─── Scraper Scheduler ────────────────────────────────────────────────────────
+
+const SCRAPER_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
+const SCRAPER_STARTUP_THRESHOLD = 100; // trigger immediate scrape if fewer records
+let scraperRunning = false;
+
+async function runScheduledScrape(reason = 'interval'): Promise<void> {
+  if (scraperRunning) {
+    console.log('[scraper] run skipped — already running');
+    return;
+  }
+  scraperRunning = true;
+  console.log(`[scraper] run started (${reason})`);
+  try {
+    const results = await runScraper();
+    const newTotal = results.reduce((sum, r) => sum + r.inserted, 0);
+    const fetched = results.reduce((sum, r) => sum + r.fetched, 0);
+    const stats = await getScraperStats();
+    console.log(`[scraper] run complete: ${newTotal} new, ${stats.total} total (fetched ${fetched})`);
+  } catch (err) {
+    console.error('[scraper] run error:', err);
+    Sentry.captureException(err);
+  } finally {
+    scraperRunning = false;
+  }
+}
+
+app.listen(PORT, async () => {
   console.log(`Sphere API running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+
+  // Trigger an immediate scrape on startup if the database is sparse
+  try {
+    const stats = await getScraperStats();
+    if (stats.total < SCRAPER_STARTUP_THRESHOLD) {
+      console.log(`[scraper] startup: only ${stats.total} records found (threshold ${SCRAPER_STARTUP_THRESHOLD}) — triggering initial scrape`);
+      runScheduledScrape('startup').catch(() => {/* already logged inside */});
+    } else {
+      console.log(`[scraper] startup: ${stats.total} records in database — no immediate scrape needed`);
+    }
+  } catch (err) {
+    console.error('[scraper] startup stats check error:', err);
+  }
+
+  // Schedule scraper to run every 6 hours
+  setInterval(() => {
+    runScheduledScrape('interval').catch(() => {/* already logged inside */});
+  }, SCRAPER_INTERVAL_MS);
+  console.log(`[scraper] scheduled — runs every ${SCRAPER_INTERVAL_MS / 3600000}h`);
 });
 
 export default app;

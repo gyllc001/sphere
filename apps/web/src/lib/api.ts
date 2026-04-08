@@ -32,6 +32,24 @@ async function request<T>(
   return res.json();
 }
 
+// Uses relative paths so requests go through the Vercel proxy rewrite (/api/* → Render).
+// Required for admin endpoints — avoids hardcoded API_URL which may not be set in production.
+async function proxyRequest<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  };
+  const res = await fetch(path, { ...options, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+  return res.json();
+}
+
 // ── Brand Auth ──────────────────────────────────────────────────────────────
 
 export interface Brand {
@@ -53,6 +71,7 @@ export const brandAuth = {
     website?: string;
     industry?: string;
     description?: string;
+    tosAccepted: boolean;
   }) =>
     request<{ token: string; brand: Brand }>('/api/brands/auth/register', {
       method: 'POST',
@@ -120,7 +139,7 @@ export interface CommunityOwner {
 }
 
 export const communityAuth = {
-  register: (data: { name: string; email: string; password: string; bio?: string }) =>
+  register: (data: { name: string; email: string; password: string; bio?: string; tosAccepted: boolean }) =>
     request<{ token: string; owner: CommunityOwner }>('/api/communities/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -460,6 +479,50 @@ export interface BulkImportResult {
   results: { success: boolean; row: number; communityId?: string; ownerId?: string; error?: string }[];
 }
 
+export interface ScrapedCommunity {
+  id: string;
+  name: string;
+  platform: string;
+  handle: string | null;
+  url: string | null;
+  memberCount: number | null;
+  estimatedEngagementRate: string | null;
+  description: string | null;
+  primaryLanguage: string | null;
+  location: string | null;
+  nicheTags: string[];
+  adminContactEmail: string | null;
+  adminContactName: string | null;
+  verificationStatus: 'unverified' | 'pending' | 'verified';
+  scrapedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ScrapedCommunitiesResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  communities: ScrapedCommunity[];
+}
+
+export interface ScraperStats {
+  total: number;
+  byPlatform: Record<string, number>;
+  byStatus: Record<string, number>;
+}
+
+export interface ScrapedCommunitiesFilters {
+  platform?: string;
+  verificationStatus?: string;
+  niche?: string;
+  minMembers?: number;
+  maxMembers?: number;
+  q?: string;
+  limit?: number;
+  offset?: number;
+}
+
 export const adminApi = {
   bulkImport: (adminKey: string, rows: BulkImportRow[]) =>
     request<BulkImportResult>('/api/admin/communities/bulk-import', {
@@ -467,6 +530,34 @@ export const adminApi = {
       headers: { Authorization: `Bearer ${adminKey}` },
       body: JSON.stringify(rows),
     }),
+
+  getScrapedCommunities: (adminKey: string, filters: ScrapedCommunitiesFilters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.platform) params.set('platform', filters.platform);
+    if (filters.verificationStatus) params.set('verificationStatus', filters.verificationStatus);
+    if (filters.niche) params.set('niche', filters.niche);
+    if (filters.minMembers != null) params.set('minMembers', String(filters.minMembers));
+    if (filters.maxMembers != null) params.set('maxMembers', String(filters.maxMembers));
+    if (filters.q) params.set('q', filters.q);
+    if (filters.limit != null) params.set('limit', String(filters.limit));
+    if (filters.offset != null) params.set('offset', String(filters.offset));
+    const qs = params.toString();
+    return proxyRequest<ScrapedCommunitiesResponse>(
+      `/api/admin/scraped-communities${qs ? `?${qs}` : ''}`,
+      { headers: { Authorization: `Bearer ${adminKey}` } },
+    );
+  },
+
+  getScraperStats: (adminKey: string) =>
+    proxyRequest<ScraperStats>('/api/admin/scraped-communities/stats', {
+      headers: { Authorization: `Bearer ${adminKey}` },
+    }),
+
+  runScraper: (adminKey: string) =>
+    proxyRequest<{ message: string; results: { platform: string; inserted: number }[] }>(
+      '/api/admin/scraper/run',
+      { method: 'POST', headers: { Authorization: `Bearer ${adminKey}` } },
+    ),
 };
 
 // ── Deals ─────────────────────────────────────────────────────────────────────

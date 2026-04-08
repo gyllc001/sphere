@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { eq, and, or } from 'drizzle-orm';
+import { eq, and, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
 import { deals, campaigns, communities, brands, communityOwners } from '../db/schema';
@@ -171,6 +171,19 @@ router.post('/:id/payout', async (req: Request, res: Response) => {
     completedAt: new Date(),
     updatedAt: new Date(),
   }).where(eq(deals.id, req.params.id)).returning();
+
+  // Credit net payout to community owner's wallet balance
+  const [communityRow] = await db
+    .select({ ownerId: communities.ownerId })
+    .from(communities)
+    .where(eq(communities.id, deal.communityId))
+    .limit(1);
+  if (communityRow) {
+    await db
+      .update(communityOwners)
+      .set({ walletBalanceCents: sql`wallet_balance_cents + ${creatorPayoutCents}`, updatedAt: new Date() })
+      .where(eq(communityOwners.id, communityRow.ownerId));
+  }
 
   // Send payout notification to community owner
   Promise.all([

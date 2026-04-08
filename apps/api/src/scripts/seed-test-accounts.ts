@@ -9,7 +9,7 @@ import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
-import { brands, communityOwners, communities } from '../src/db/schema';
+import { brands, communityOwners, communities } from '../db/schema';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool);

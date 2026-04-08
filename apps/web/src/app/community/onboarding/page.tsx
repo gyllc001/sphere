@@ -144,10 +144,11 @@ export default function CommunityOnboarding() {
     if (collabForm.customTopicExcluded.trim()) topicsExcluded.push(collabForm.customTopicExcluded.trim());
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await communityPortal.updateCommunity(token, createdCommunityId, {
         contentTypesAccepted: collabForm.contentTypesAccepted.length ? collabForm.contentTypesAccepted : undefined,
         topicsExcluded: topicsExcluded.length ? topicsExcluded : undefined,
-      });
+      } as any);
     } catch {
       // Non-fatal — prefs are optional
     } finally {

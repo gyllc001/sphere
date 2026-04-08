@@ -5,7 +5,7 @@ services:
     # Dockerfile lives at apps/api/Dockerfile but is built from the repo root
     # (it references packages/ and the workspace root package.json)
     dockerfilePath: apps/api/Dockerfile
-    # Override CMD to run migrations before starting the server
+    startCommand: node dist/db/migrate.js && node dist/index.js
     healthCheckPath: /health
     plan: free
     envVars:

@@ -22,6 +22,8 @@ export const scrapedCommunities = pgTable(
     // Contact info (publicly available only)
     adminContactEmail: text('admin_contact_email'),
     adminContactName: varchar('admin_contact_name', { length: 255 }),
+    // Social handle for contacting admin/moderator (e.g. @telegramhandle, u/redditor, discord#1234)
+    adminContactHandle: varchar('admin_contact_handle', { length: 255 }),
     // Raw scraped payload for reference
     rawMetadata: text('raw_metadata'),
     // Verification lifecycle

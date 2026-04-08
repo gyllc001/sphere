@@ -252,6 +252,7 @@ router.patch('/scraped-communities/:id', async (req: Request, res: Response) => 
     verificationStatus: z.enum(['unverified', 'pending', 'verified']).optional(),
     adminContactEmail: z.string().email().optional().nullable(),
     adminContactName: z.string().max(255).optional().nullable(),
+    adminContactHandle: z.string().max(255).optional().nullable(),
   });
 
   const parsed = schema.safeParse(req.body);

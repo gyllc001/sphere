@@ -78,6 +78,20 @@
       "when": 1744416000000,
       "tag": "0008_scraped_communities",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1744459200000,
+      "tag": "0009_subscription_billing",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1744502400000,
+      "tag": "0010_email_tokens",
+      "breakpoints": true
     }
   ]
 }

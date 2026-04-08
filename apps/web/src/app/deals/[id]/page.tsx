@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { dealsApi, disputesApi, contentApi, getToken, type Deal, type Dispute, type ContentSubmission } from '@/lib/api';
+import { dealsApi, disputesApi, contentApi, feedbackApi, getToken, type Deal, type Dispute, type ContentSubmission, type DealFeedbackPayload, type DealFeedbackResponse } from '@/lib/api';
+import { track } from '@/lib/analytics';
 
 const STATUS_LABELS: Record<string, string> = {
   agreed: 'Deal Agreed',
@@ -107,6 +108,7 @@ function ContentWorkflow({
     try {
       const urls = assetUrls.split('\n').map(u => u.trim()).filter(Boolean);
       await contentApi.submit(token, dealId, { brief: brief.trim(), assetUrls: urls });
+      track('content_submitted', { deal_id: dealId });
       setBrief('');
       setAssetUrls('');
       setShowSubmitForm(false);
@@ -123,6 +125,7 @@ function ContentWorkflow({
     setActionError('');
     try {
       await contentApi.approve(token, dealId, submissionId);
+      track('content_approved', { deal_id: dealId, submission_id: submissionId });
       load();
     } catch (err: any) {
       setActionError(err.message);
@@ -167,6 +170,7 @@ function ContentWorkflow({
     setActionError('');
     try {
       await contentApi.confirm(token, dealId, submissionId);
+      track('payout_requested', { deal_id: dealId, submission_id: submissionId });
       load();
     } catch (err: any) {
       setActionError(err.message);
@@ -439,6 +443,182 @@ function ContentWorkflow({
   );
 }
 
+function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange(star)}
+          className={`text-2xl leading-none transition-colors ${
+            star <= value ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'
+          }`}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DealFeedbackPrompt({
+  dealId,
+  token,
+  onDismiss,
+}: {
+  dealId: string;
+  token: string;
+  onDismiss: () => void;
+}) {
+  const [submitted, setSubmitted] = useState<DealFeedbackResponse | null>(null);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [checkingExisting, setCheckingExisting] = useState(true);
+  const [error, setError] = useState('');
+
+  const [dealQuality, setDealQuality] = useState(0);
+  const [easeOfUse, setEaseOfUse] = useState(0);
+  const [repeatIntent, setRepeatIntent] = useState<'yes' | 'no' | 'maybe' | ''>('');
+  const [openText, setOpenText] = useState('');
+
+  useEffect(() => {
+    feedbackApi.getMyFeedback(token, dealId)
+      .then((existing) => {
+        if (existing) setAlreadySubmitted(true);
+      })
+      .catch(() => {})
+      .finally(() => setCheckingExisting(false));
+  }, [dealId, token]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!dealQuality || !easeOfUse || !repeatIntent) return;
+    setLoading(true);
+    setError('');
+    try {
+      const payload: DealFeedbackPayload = {
+        dealQuality,
+        easeOfUse,
+        repeatIntent,
+        openText: openText.trim() || undefined,
+      };
+      const result = await feedbackApi.submit(token, dealId, payload);
+      setSubmitted(result);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (checkingExisting) return null;
+
+  if (alreadySubmitted) return null;
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4 pointer-events-none">
+      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 w-full max-w-lg pointer-events-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b">
+          <div>
+            <p className="font-semibold text-gray-900">How did the deal go?</p>
+            <p className="text-xs text-gray-500 mt-0.5">Your feedback helps us improve Sphere for everyone.</p>
+          </div>
+          <button
+            onClick={onDismiss}
+            className="text-gray-400 hover:text-gray-600 text-xl leading-none px-1"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+
+        {submitted ? (
+          <div className="px-5 py-6 text-center space-y-2">
+            <p className="text-2xl">🎉</p>
+            <p className="font-semibold text-gray-800">Thanks for your feedback!</p>
+            <p className="text-sm text-gray-500">It helps us make Sphere better for the whole community.</p>
+            <button
+              onClick={onDismiss}
+              className="mt-3 text-sm text-indigo-600 hover:text-indigo-800 underline"
+            >
+              Close
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
+            {error && (
+              <div className="text-sm text-red-600 bg-red-50 rounded p-2">{error}</div>
+            )}
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Deal quality</label>
+              <StarRating value={dealQuality} onChange={setDealQuality} />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Platform ease of use</label>
+              <StarRating value={easeOfUse} onChange={setEaseOfUse} />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Would you use Sphere again?</label>
+              <div className="flex gap-2">
+                {(['yes', 'no', 'maybe'] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setRepeatIntent(opt)}
+                    className={`px-4 py-1.5 rounded-full text-sm border transition-colors capitalize ${
+                      repeatIntent === opt
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'border-gray-300 text-gray-600 hover:border-indigo-400'
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">
+                Anything else to share? <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <textarea
+                value={openText}
+                onChange={(e) => setOpenText(e.target.value)}
+                rows={2}
+                maxLength={2000}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+                placeholder="Any thoughts about this deal or the platform..."
+              />
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="submit"
+                disabled={loading || !dealQuality || !easeOfUse || !repeatIntent}
+                className="bg-indigo-600 text-white text-sm px-5 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {loading ? 'Submitting…' : 'Submit Feedback'}
+              </button>
+              <button
+                type="button"
+                onClick={onDismiss}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Skip
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function DealPage() {
   const params = useParams();
   const router = useRouter();
@@ -455,6 +635,7 @@ export default function DealPage() {
   const [disputeLoading, setDisputeLoading] = useState(false);
   const [disputeError, setDisputeError] = useState('');
   const [activeToken, setActiveToken] = useState<string>('');
+  const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
 
   function getActiveAuth(): { token: string; role: 'brand' | 'community' } | null {
     const brandToken = getToken('brand');
@@ -470,7 +651,10 @@ export default function DealPage() {
     setRole(auth.role);
     setActiveToken(auth.token);
     dealsApi.get(auth.token, id)
-      .then(setDeal)
+      .then((d) => {
+        setDeal(d);
+        if (d.status === 'completed') setShowFeedbackPrompt(true);
+      })
       .catch((err) => setError(err.message));
   }
 
@@ -498,7 +682,7 @@ export default function DealPage() {
     const auth = getActiveAuth();
     if (!auth) return;
     setLoading(true); setActionError('');
-    try { const updated = await dealsApi.sign(auth.token, id); setDeal(updated); }
+    try { const updated = await dealsApi.sign(auth.token, id); track('deal_accepted', { user_type: auth.role, deal_id: id }); setDeal(updated); }
     catch (err: any) { setActionError(err.message); }
     finally { setLoading(false); }
   }
@@ -725,6 +909,14 @@ export default function DealPage() {
           </div>
         )}
       </main>
+
+      {showFeedbackPrompt && activeToken && (
+        <DealFeedbackPrompt
+          dealId={deal.id}
+          token={activeToken}
+          onDismiss={() => setShowFeedbackPrompt(false)}
+        />
+      )}
     </div>
   );
 }

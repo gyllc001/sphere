@@ -2,12 +2,25 @@ import { Router, Request, Response } from 'express';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import { deals, campaigns, communities, contentSubmissions } from '../db/schema';
+import { deals, campaigns, communities, contentSubmissions, brands, communityOwners } from '../db/schema';
 import { requireAuth } from '../middleware/auth';
+import { sendContentSubmissionEmail, sendContentApprovedEmail } from '../services/email';
 
 const router = Router({ mergeParams: true });
 
 router.use(requireAuth);
+
+async function getDealEmailContext(dealId: string) {
+  const [deal] = await db.select().from(deals).where(eq(deals.id, dealId)).limit(1);
+  if (!deal) return null;
+  const [campaign] = await db.select({ title: campaigns.title, brandId: campaigns.brandId }).from(campaigns).where(eq(campaigns.id, deal.campaignId)).limit(1);
+  const [community] = await db.select({ name: communities.name, ownerId: communities.ownerId }).from(communities).where(eq(communities.id, deal.communityId)).limit(1);
+  if (!campaign || !community) return null;
+  const [brand] = await db.select({ name: brands.name, email: brands.email }).from(brands).where(eq(brands.id, campaign.brandId)).limit(1);
+  const [owner] = await db.select({ name: communityOwners.name, email: communityOwners.email }).from(communityOwners).where(eq(communityOwners.id, community.ownerId)).limit(1);
+  if (!brand || !owner) return null;
+  return { campaignTitle: campaign.title, communityName: community.name, brandName: brand.name, brandEmail: brand.email, ownerName: owner.name, ownerEmail: owner.email };
+}
 
 async function verifyDealAccess(
   dealId: string,
@@ -83,6 +96,19 @@ router.post('/', async (req: Request, res: Response) => {
     })
     .returning();
 
+  // Notify community owner that content has been submitted for their review
+  getDealEmailContext(deal.id).then((ctx) => {
+    if (!ctx) return;
+    sendContentSubmissionEmail({
+      brandEmail: ctx.ownerEmail,
+      brandName: ctx.ownerName,
+      communityName: ctx.communityName,
+      campaignTitle: ctx.campaignTitle,
+      dealId: deal.id,
+      submissionId: submission.id,
+    }).catch((err) => console.error('[email] content submission notify failed:', err));
+  }).catch((err) => console.error('[email] content submission context lookup failed:', err));
+
   return res.status(201).json(submission);
 });
 
@@ -121,6 +147,21 @@ router.post('/:submissionId/approve', async (req: Request, res: Response) => {
     })
     .where(eq(contentSubmissions.id, sub.id))
     .returning();
+
+  // Notify community owner when content is fully approved
+  if (bothApproved) {
+    getDealEmailContext(req.params.dealId).then((ctx) => {
+      if (!ctx) return;
+      sendContentApprovedEmail({
+        ownerEmail: ctx.ownerEmail,
+        ownerName: ctx.ownerName,
+        communityName: ctx.communityName,
+        campaignTitle: ctx.campaignTitle,
+        dealId: req.params.dealId,
+        autoApproved: false,
+      }).catch((err) => console.error('[email] content approved notify failed:', err));
+    }).catch((err) => console.error('[email] content approved context lookup failed:', err));
+  }
 
   return res.json(updated);
 });

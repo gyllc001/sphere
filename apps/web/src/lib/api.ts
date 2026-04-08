@@ -42,6 +42,7 @@ export interface Brand {
   website?: string;
   industry?: string;
   description?: string;
+  createdAt?: string;
 }
 
 export const brandAuth = {
@@ -115,6 +116,7 @@ export interface CommunityOwner {
   email: string;
   bio?: string;
   avatarUrl?: string;
+  createdAt?: string;
 }
 
 export const communityAuth = {
@@ -410,6 +412,31 @@ export const communityProfileApi = {
     request<CommunityProfile>(`/api/campaigns/communities/${communityId}`, { token }),
 };
 
+// ── Billing ───────────────────────────────────────────────────────────────────
+
+export interface SubscriptionInfo {
+  tier: 'starter' | 'growth' | 'scale' | null;
+  status: string | null;
+  partnershipLimit: number;
+  tierDetails: { name: string; priceMonthCents: number; partnershipLimit: number } | null;
+  tiers: Record<string, { name: string; priceMonthCents: number; partnershipLimit: number }>;
+}
+
+export const billingApi = {
+  getSubscription: (token: string) =>
+    request<SubscriptionInfo>('/api/billing/subscription', { token }),
+
+  createCheckoutSession: (token: string, tier: 'starter' | 'growth' | 'scale') =>
+    request<{ url: string }>('/api/billing/checkout', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ tier }),
+    }),
+
+  createPortalSession: (token: string) =>
+    request<{ url: string }>('/api/billing/portal', { method: 'POST', token }),
+};
+
 // ── Admin ─────────────────────────────────────────────────────────────────────
 
 export interface BulkImportRow {
@@ -642,5 +669,34 @@ export const disputesApi = {
       method: 'POST',
       token,
       body: JSON.stringify({ body }),
+    }),
+};
+
+// ── Deal Feedback ─────────────────────────────────────────────────────────────
+
+export interface DealFeedbackPayload {
+  dealQuality: number;
+  easeOfUse: number;
+  repeatIntent: 'yes' | 'no' | 'maybe';
+  openText?: string;
+}
+
+export interface DealFeedbackResponse extends DealFeedbackPayload {
+  id: string;
+  dealId: string;
+  userId: string;
+  userRole: string;
+  submittedAt: string;
+}
+
+export const feedbackApi = {
+  getMyFeedback: (token: string, dealId: string) =>
+    request<DealFeedbackResponse | null>(`/api/deals/${dealId}/feedback/me`, { token }),
+
+  submit: (token: string, dealId: string, data: DealFeedbackPayload) =>
+    request<DealFeedbackResponse>(`/api/deals/${dealId}/feedback`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify(data),
     }),
 };

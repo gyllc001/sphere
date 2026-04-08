@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { brandAuth, campaigns, getToken, clearToken, type Brand } from '@/lib/api';
+import { track } from '@/lib/analytics';
 
-const STEPS = ['Company Profile', 'Launch Your First Campaign', 'You\'re All Set'];
+const STEPS = ['Choose Plan', 'Company Profile', 'Launch Your First Campaign', 'You\'re All Set'];
 
 const INDUSTRY_OPTIONS = [
   'SaaS / Software', 'Consumer Goods', 'Health & Wellness', 'Fashion & Apparel',
@@ -23,12 +24,45 @@ const BUDGET_OPTIONS = [
   { label: '$25,000+', value: 2500001 },
 ];
 
+const PLANS = [
+  {
+    tier: 'starter',
+    name: 'Starter',
+    price: '$250/mo',
+    limit: 'Up to 10 community partnerships',
+    features: ['AI-powered community matching', 'Campaign management', 'In-platform messaging', 'Deal tracking'],
+    highlight: false,
+  },
+  {
+    tier: 'growth',
+    name: 'Growth',
+    price: '$450/mo',
+    limit: 'Up to 20 community partnerships',
+    features: ['Everything in Starter', 'Priority matching', 'Advanced analytics', 'Campaign reports'],
+    highlight: true,
+  },
+  {
+    tier: 'scale',
+    name: 'Scale',
+    price: '$1,000/mo',
+    limit: 'Up to 50 partnerships (+$75/extra)',
+    features: ['Everything in Growth', 'Dedicated support', 'Custom integrations', 'Bulk outreach'],
+    highlight: false,
+  },
+] as const;
+
+type PlanTier = 'starter' | 'growth' | 'scale';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
 export default function BrandOnboarding() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [brand, setBrand] = useState<Brand | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [selectedPlan, setSelectedPlan] = useState<PlanTier>('starter');
 
   const [profile, setProfile] = useState({
     website: '',
@@ -65,15 +99,45 @@ export default function BrandOnboarding() {
     setCampaignForm((c) => ({ ...c, [field]: value }));
   }
 
+  async function handlePlanNext(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const token = getToken('brand');
+    if (!token) return;
+    try {
+      // Create a Stripe Checkout session for the selected plan
+      const res = await fetch(`${API_URL}/api/billing/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ tier: selectedPlan }),
+      });
+      if (res.ok) {
+        const { url } = await res.json();
+        // Redirect to Stripe Checkout. On success, Stripe redirects back to /brand/dashboard.
+        window.location.href = url;
+        return;
+      }
+      // If Stripe is not configured, proceed to next step without payment
+      setStep(1);
+    } catch {
+      // Fallback: allow progression if billing isn't set up yet
+      setStep(1);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleProfileNext(e: React.FormEvent) {
     e.preventDefault();
-    setStep(1);
+    track('profile_completed', { user_type: 'brand', industry: profile.industry });
+    setStep(2);
   }
 
   async function handleCampaignNext(e: React.FormEvent) {
     e.preventDefault();
     if (campaignForm.skipCampaign) {
-      setStep(2);
+      setStep(3);
       return;
     }
     setError('');
@@ -89,7 +153,8 @@ export default function BrandOnboarding() {
         objectives: campaignForm.objectives || undefined,
         targetAudience: profile.targetAudience || undefined,
       });
-      setStep(2);
+      track('first_deal_initiated', { user_type: 'brand', source: 'onboarding' });
+      setStep(3);
     } catch (err: any) {
       setError(err.message || 'Failed to create campaign');
     } finally {
@@ -113,7 +178,7 @@ export default function BrandOnboarding() {
         </button>
       </header>
 
-      <main className="max-w-xl mx-auto px-6 py-10">
+      <main className="max-w-3xl mx-auto px-6 py-10">
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
@@ -127,7 +192,7 @@ export default function BrandOnboarding() {
                   {i < step ? '✓' : i + 1}
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div className={`h-0.5 w-16 sm:w-32 mx-1 ${i < step ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                  <div className={`h-0.5 w-12 sm:w-24 mx-1 ${i < step ? 'bg-blue-600' : 'bg-gray-200'}`} />
                 )}
               </div>
             ))}
@@ -139,9 +204,78 @@ export default function BrandOnboarding() {
           </div>
         </div>
 
-        {/* Step 0: Company Profile */}
+        {/* Step 0: Choose Plan */}
         {step === 0 && (
           <div className="bg-white rounded-xl shadow-sm border p-8">
+            <h1 className="text-xl font-bold mb-1">Choose your plan</h1>
+            <p className="text-sm text-gray-500 mb-6">Select a subscription tier. You can upgrade or downgrade anytime from your dashboard.</p>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">{error}</div>
+            )}
+
+            <form onSubmit={handlePlanNext}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                {PLANS.map((plan) => (
+                  <button
+                    key={plan.tier}
+                    type="button"
+                    onClick={() => setSelectedPlan(plan.tier)}
+                    className={`text-left p-5 rounded-xl border-2 transition-all ${
+                      selectedPlan === plan.tier
+                        ? 'border-blue-600 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    } ${plan.highlight ? 'relative' : ''}`}
+                  >
+                    {plan.highlight && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-semibold px-3 py-0.5 rounded-full">
+                        Most Popular
+                      </span>
+                    )}
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-gray-900">{plan.name}</span>
+                      {selectedPlan === plan.tier && (
+                        <span className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center">
+                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-lg font-semibold text-blue-600 mb-1">{plan.price}</p>
+                    <p className="text-xs text-gray-500 mb-3">{plan.limit}</p>
+                    <ul className="space-y-1">
+                      {plan.features.map((f) => (
+                        <li key={f} className="text-xs text-gray-600 flex items-start gap-1">
+                          <svg className="w-3 h-3 text-green-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-xs text-gray-400 mb-4 text-center">
+                Creator processing fee: 10–15% on payouts · Wallet dispensement fee: 2.5%
+              </p>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading ? 'Redirecting to checkout...' : `Continue with ${PLANS.find((p) => p.tier === selectedPlan)?.name} →`}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Step 1: Company Profile */}
+        {step === 1 && (
+          <div className="bg-white rounded-xl shadow-sm border p-8 max-w-xl mx-auto">
             <h1 className="text-xl font-bold mb-1">Welcome to Sphere, {brand.name}!</h1>
             <p className="text-sm text-gray-500 mb-6">Let's set up your brand profile to get the best community matches.</p>
 
@@ -195,9 +329,9 @@ export default function BrandOnboarding() {
           </div>
         )}
 
-        {/* Step 1: First Campaign */}
-        {step === 1 && (
-          <div className="bg-white rounded-xl shadow-sm border p-8">
+        {/* Step 2: First Campaign */}
+        {step === 2 && (
+          <div className="bg-white rounded-xl shadow-sm border p-8 max-w-xl mx-auto">
             <h1 className="text-xl font-bold mb-1">Launch your first campaign</h1>
             <p className="text-sm text-gray-500 mb-6">Tell us what you're looking for and we'll start matching you with communities within 24 hours.</p>
 
@@ -291,9 +425,9 @@ export default function BrandOnboarding() {
           </div>
         )}
 
-        {/* Step 2: Confirmation */}
-        {step === 2 && (
-          <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
+        {/* Step 3: Confirmation */}
+        {step === 3 && (
+          <div className="bg-white rounded-xl shadow-sm border p-8 text-center max-w-xl mx-auto">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

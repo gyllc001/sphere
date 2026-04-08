@@ -71,7 +71,8 @@ Respond with JSON only (no markdown):
   });
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '';
-  const parsed = JSON.parse(text.trim());
+  const cleaned = text.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '').replace(/^```\n?/, '');
+  const parsed = JSON.parse(cleaned);
 
   if (parsed.action === 'accept') {
     return { action: 'accept', finalRateCents: Number(parsed.finalRateCents ?? ctx.currentProposedRateCents) };

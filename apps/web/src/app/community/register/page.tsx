@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { communityAuth, setToken } from '@/lib/api';
+import { track, identifyUser } from '@/lib/analytics';
 
 export default function CommunityRegister() {
   const router = useRouter();
   const [form, setForm] = useState({ name: '', email: '', password: '', bio: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   function update(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -19,6 +21,7 @@ export default function CommunityRegister() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    track('signup_started', { user_type: 'community' });
     try {
       const payload = {
         name: form.name,
@@ -26,8 +29,10 @@ export default function CommunityRegister() {
         password: form.password,
         ...(form.bio && { bio: form.bio }),
       };
-      const { token } = await communityAuth.register(payload);
+      const { token, owner } = await communityAuth.register(payload);
       setToken('community', token);
+      identifyUser(owner.id, { email: owner.email, name: owner.name, user_type: 'community' });
+      track('signup_completed', { user_type: 'community' });
       router.push('/community/onboarding');
     } catch (err: any) {
       setError(err.message || 'Registration failed');
@@ -88,9 +93,25 @@ export default function CommunityRegister() {
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
+          <div className="flex items-start gap-2">
+            <input
+              id="terms"
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              required
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+            />
+            <label htmlFor="terms" className="text-sm text-gray-600">
+              I agree to the{' '}
+              <Link href="/terms" className="text-green-600 hover:underline">Terms of Service</Link>
+              {' '}and{' '}
+              <Link href="/privacy" className="text-green-600 hover:underline">Privacy Policy</Link>
+            </label>
+          </div>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !agreedToTerms}
             className="w-full bg-green-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50"
           >
             {loading ? 'Creating account...' : 'Create Account'}

@@ -498,7 +498,7 @@ function Footer() {
           <div>
             <h4 className="text-xs font-bold uppercase tracking-widest text-white/25 mb-4">Legal</h4>
             <ul className="space-y-2.5 text-sm text-white/30">
-              <li><a href="#" className="hover:text-white/65 transition-colors">Privacy Policy</a></li>
+              <li><Link href="/privacy" className="hover:text-white/65 transition-colors">Privacy Policy</Link></li>
               <li><a href="#" className="hover:text-white/65 transition-colors">Terms of Service</a></li>
               <li><a href="#" className="hover:text-white/65 transition-colors">Cookie Policy</a></li>
               <li><a href="#" className="hover:text-white/65 transition-colors">Contact</a></li>

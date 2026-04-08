@@ -2,9 +2,10 @@ import { Router, Request, Response } from 'express';
 import { eq, and, or } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import { deals, campaigns, communities } from '../db/schema';
+import { deals, campaigns, communities, brands, communityOwners } from '../db/schema';
 import { requireAuth } from '../middleware/auth';
 import { advanceNegotiation, generateContract } from '../services/negotiation';
+import { sendDealStatusEmail, sendPayoutSentEmail } from '../services/email';
 
 const router = Router();
 
@@ -46,6 +47,31 @@ router.post('/:id/negotiate', async (req: Request, res: Response) => {
 
   try {
     const decision = await advanceNegotiation(req.params.id);
+
+    // Send deal status emails when a deal is accepted or declined
+    if (decision.status === 'agreed' || decision.status === 'cancelled') {
+      const statusLabel = decision.status === 'agreed' ? 'accepted' : 'declined';
+      (async () => {
+        try {
+          const [updatedDeal] = await db.select().from(deals).where(eq(deals.id, req.params.id)).limit(1);
+          if (!updatedDeal) return;
+          const [campaignRow] = await db.select({ title: campaigns.title }).from(campaigns).where(eq(campaigns.id, updatedDeal.campaignId)).limit(1);
+          const [community] = await db.select({ name: communities.name, ownerId: communities.ownerId }).from(communities).where(eq(communities.id, updatedDeal.communityId)).limit(1);
+          if (!campaignRow || !community) return;
+          const [brand] = await db.select({ name: brands.name, email: brands.email }).from(brands).where(eq(brands.id, req.auth!.sub)).limit(1);
+          const [owner] = await db.select({ name: communityOwners.name, email: communityOwners.email }).from(communityOwners).where(eq(communityOwners.id, community.ownerId)).limit(1);
+          if (!brand || !owner) return;
+
+          sendDealStatusEmail({ to: owner.email, recipientName: owner.name, role: 'community_owner', campaignTitle: campaignRow.title, communityName: community.name, dealId: req.params.id, status: statusLabel })
+            .catch((err) => console.error('[email] deal status to owner failed:', err));
+          sendDealStatusEmail({ to: brand.email, recipientName: brand.name, role: 'brand', campaignTitle: campaignRow.title, communityName: community.name, dealId: req.params.id, status: statusLabel })
+            .catch((err) => console.error('[email] deal status to brand failed:', err));
+        } catch (err) {
+          console.error('[email] deal status lookup failed:', err);
+        }
+      })();
+    }
+
     return res.json(decision);
   } catch (err: any) {
     return res.status(409).json({ error: err.message });
@@ -84,7 +110,7 @@ router.post('/:id/payment', async (req: Request, res: Response) => {
 
   const [deal] = await db.select().from(deals).where(eq(deals.id, req.params.id)).limit(1);
   if (!deal) return res.status(404).json({ error: 'Deal not found' });
-  if (deal.status !== 'signed') return res.status(409).json({ error: `Deal must be signed before payment (current: ${deal.status})` });
+  if (deal.status !== 'active' || deal.signatureStatus !== 'fully_executed') return res.status(409).json({ error: `Deal must be fully signed before payment (current status: ${deal.status}, signatureStatus: ${deal.signatureStatus})` });
 
   const [campaign] = await db.select({ brandId: campaigns.brandId }).from(campaigns).where(eq(campaigns.id, deal.campaignId)).limit(1);
   if (campaign?.brandId !== req.auth!.sub) return res.status(403).json({ error: 'Forbidden' });
@@ -129,6 +155,11 @@ router.post('/:id/payout', async (req: Request, res: Response) => {
   const [campaign] = await db.select({ brandId: campaigns.brandId }).from(campaigns).where(eq(campaigns.id, deal.campaignId)).limit(1);
   if (campaign?.brandId !== req.auth!.sub) return res.status(403).json({ error: 'Forbidden' });
 
+  // Apply creator processing fee (10%) before payout
+  const CREATOR_PROCESSING_FEE_RATE = 0.10;
+  const platformFeeCents = Math.round(deal.agreedRateCents * CREATOR_PROCESSING_FEE_RATE);
+  const creatorPayoutCents = deal.agreedRateCents - platformFeeCents;
+
   // STUB: In production, execute Stripe Connect transfer to community owner's account
   const stubTransferId = `tr_stub_${Date.now()}`;
 
@@ -141,16 +172,38 @@ router.post('/:id/payout', async (req: Request, res: Response) => {
     updatedAt: new Date(),
   }).where(eq(deals.id, req.params.id)).returning();
 
+  // Send payout notification to community owner
+  Promise.all([
+    db.select({ title: campaigns.title }).from(campaigns).where(eq(campaigns.id, deal.campaignId)).limit(1),
+    db.select({ name: communities.name, ownerId: communities.ownerId }).from(communities).where(eq(communities.id, deal.communityId)).limit(1),
+  ]).then(async ([[campaignRow], [community]]) => {
+    if (!campaignRow || !community) return;
+    const [owner] = await db.select({ name: communityOwners.name, email: communityOwners.email }).from(communityOwners).where(eq(communityOwners.id, community.ownerId)).limit(1);
+    if (!owner) return;
+    sendPayoutSentEmail({
+      ownerEmail: owner.email,
+      ownerName: owner.name,
+      communityName: community.name,
+      campaignTitle: campaignRow.title,
+      payoutCents: creatorPayoutCents,
+      dealId: req.params.id,
+      transferId: stubTransferId,
+    }).catch((err) => console.error('[email] payout sent failed:', err));
+  }).catch((err) => console.error('[email] payout lookup failed:', err));
+
   return res.json({
     deal: updated,
     payout: {
       transferId: stubTransferId,
-      amount: deal.agreedRateCents,
+      grossAmountCents: deal.agreedRateCents,
+      platformFeeCents,
+      platformFeeRate: CREATOR_PROCESSING_FEE_RATE,
+      creatorPayoutCents,
       currency: 'usd',
       status: 'released',
       // STUB: real Stripe Connect transfer fields would appear here
       _stub: true,
-      _message: 'Payout released. In production, funds transferred via Stripe Connect to community owner.',
+      _message: `Payout released. Creator receives $${(creatorPayoutCents / 100).toFixed(2)} after 10% platform fee. In production, funds transferred via Stripe Connect.`,
     },
   });
 });

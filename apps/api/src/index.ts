@@ -52,17 +52,38 @@ app.get('/health', async (_req, res) => {
   });
 });
 
-// Diagnostic: test raw pool query against actual tables (not just SELECT 1)
+// Diagnostic: test raw pool query against actual tables
 app.get('/health/db-tables', async (_req, res) => {
+  const results: Record<string, unknown> = {};
   try {
-    const result = await dbPool.query(
+    const tableResult = await dbPool.query(
       "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
     );
-    const tables = result.rows.map((r: { table_name: string }) => r.table_name);
-    res.json({ ok: true, tables });
+    results.tables = tableResult.rows.map((r: { table_name: string }) => r.table_name);
   } catch (err) {
-    res.status(500).json({ ok: false, error: String(err) });
+    results.tables_error = String(err);
   }
+
+  // Test raw query on brands table directly (detect table locks)
+  try {
+    const brandsResult = await dbPool.query('SELECT COUNT(*) FROM brands');
+    results.brands_count = brandsResult.rows[0].count;
+  } catch (err) {
+    results.brands_error = String(err);
+  }
+
+  // Test Drizzle ORM query on brands table
+  try {
+    const { db: drizzleDb } = await import('./db');
+    const { brands: brandsTable } = await import('./db/schema');
+    const rows = await drizzleDb.select({ id: brandsTable.id }).from(brandsTable).limit(1);
+    results.drizzle_brands_ok = true;
+    results.drizzle_brands_sample = rows.length;
+  } catch (err) {
+    results.drizzle_brands_error = String(err);
+  }
+
+  res.json(results);
 });
 
 app.use('/api/brands/auth', brandAuthRoutes);

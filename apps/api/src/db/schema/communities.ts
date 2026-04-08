@@ -54,6 +54,8 @@ export const communityOwners = pgTable('community_owners', {
   // Password reset
   passwordResetToken: text('password_reset_token'),
   passwordResetTokenExpiresAt: timestamp('password_reset_token_expires_at'),
+  // Wallet: accumulated earnings from completed deals, awaiting withdrawal
+  walletBalanceCents: integer('wallet_balance_cents').notNull().default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

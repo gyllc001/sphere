@@ -92,6 +92,13 @@
       "when": 1744502400000,
       "tag": "0010_email_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1744545600000,
+      "tag": "0011_wallet_balance",
+      "breakpoints": true
     }
   ]
 }

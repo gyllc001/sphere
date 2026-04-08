@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
 import { communities, communityOwners, partnershipRequests, campaigns, brands, deals, campaignApplications, COMMUNITY_TOPIC_CATEGORIES } from '../db/schema';
@@ -497,6 +497,78 @@ router.get('/my-applications', async (req: Request, res: Response) => {
     .orderBy(campaignApplications.createdAt);
 
   return res.json(results);
+});
+
+/**
+ * GET /api/owner/wallet
+ * Returns the authenticated community owner's wallet balance.
+ */
+router.get('/wallet', async (req: Request, res: Response) => {
+  const [owner] = await db
+    .select({ walletBalanceCents: communityOwners.walletBalanceCents })
+    .from(communityOwners)
+    .where(eq(communityOwners.id, req.auth!.sub))
+    .limit(1);
+
+  if (!owner) return res.status(404).json({ error: 'Owner not found' });
+
+  return res.json({ walletBalanceCents: owner.walletBalanceCents });
+});
+
+/**
+ * POST /api/owner/wallet/withdraw
+ * Request a withdrawal from wallet balance. Applies a 2.5% dispensement fee.
+ * STUB: In production, triggers a Stripe Connect transfer to the owner's bank account.
+ */
+router.post('/wallet/withdraw', async (req: Request, res: Response) => {
+  const schema = z.object({
+    amountCents: z.number().int().positive(),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'amountCents must be a positive integer (cents)' });
+  }
+
+  const { amountCents } = parsed.data;
+
+  const [owner] = await db
+    .select({ walletBalanceCents: communityOwners.walletBalanceCents })
+    .from(communityOwners)
+    .where(eq(communityOwners.id, req.auth!.sub))
+    .limit(1);
+
+  if (!owner) return res.status(404).json({ error: 'Owner not found' });
+  if (amountCents > owner.walletBalanceCents) {
+    return res.status(409).json({
+      error: `Insufficient wallet balance. Available: ${owner.walletBalanceCents} cents, requested: ${amountCents} cents.`,
+      walletBalanceCents: owner.walletBalanceCents,
+    });
+  }
+
+  const DISPENSEMENT_FEE_RATE = 0.025;
+  const feeCents = Math.round(amountCents * DISPENSEMENT_FEE_RATE);
+  const netPayoutCents = amountCents - feeCents;
+
+  // Deduct from wallet
+  await db
+    .update(communityOwners)
+    .set({ walletBalanceCents: sql`wallet_balance_cents - ${amountCents}`, updatedAt: new Date() })
+    .where(eq(communityOwners.id, req.auth!.sub));
+
+  // STUB: In production, execute Stripe Connect transfer here
+  const stubTransferId = `wd_stub_${Date.now()}`;
+
+  return res.json({
+    transferId: stubTransferId,
+    requestedCents: amountCents,
+    dispensementFeeCents: feeCents,
+    dispensementFeeRate: DISPENSEMENT_FEE_RATE,
+    netPayoutCents,
+    currency: 'usd',
+    status: 'processed',
+    _stub: true,
+    _message: `Withdrawal processed. You receive $${(netPayoutCents / 100).toFixed(2)} after 2.5% dispensement fee. In production, funds transferred via Stripe Connect.`,
+  });
 });
 
 export default router;

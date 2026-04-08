@@ -36,6 +36,48 @@
       "when": 1744156800000,
       "tag": "0004_campaign_applications",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1744200000000,
+      "tag": "0004_content_submissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1744243200000,
+      "tag": "0005_brand_safety",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1744286400000,
+      "tag": "0005_community_collab_prefs",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1744329600000,
+      "tag": "0006_messages",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1744372800000,
+      "tag": "0007_disputes",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1744416000000,
+      "tag": "0008_scraped_communities",
+      "breakpoints": true
     }
   ]
 }

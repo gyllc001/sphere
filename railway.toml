@@ -3,7 +3,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "apps/api/Dockerfile"
 
 [deploy]
-startCommand = "node dist/db/migrate.js; node dist/scripts/seed-test-accounts.js; node dist/index.js"
+startCommand = "node dist/db/migrate.js; node dist/index.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"

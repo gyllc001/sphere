@@ -6,7 +6,7 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 import { db } from '../db';
-import { campaigns, communities, communityOwners, partnershipRequests } from '../db/schema';
+import { campaigns, communities, communityOwners, partnershipRequests, brands } from '../db/schema';
 import { eq, and, notInArray } from 'drizzle-orm';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -17,6 +17,43 @@ export interface MatchResult {
   score: number;      // 0-100
   rationale: string;
   proposedRateCents: number;
+  safetyFlagged?: boolean;           // true if community matched an excluded topic/keyword
+  safetyFlagReasons?: string[];      // which categories/keywords triggered the flag
+}
+
+/**
+ * Check whether a community should be excluded or flagged based on brand safety settings.
+ * Returns { excluded: true } if the community should be hard-excluded,
+ * or { excluded: false, flagged: true, reasons } if it should appear with a warning.
+ */
+function checkBrandSafety(
+  community: { contentTopics: string[] | null; niche: string | null; description: string | null },
+  excludedCategories: string[],
+  excludedKeywords: string[],
+): { excluded: boolean; flagged: boolean; reasons: string[] } {
+  if (excludedCategories.length === 0 && excludedKeywords.length === 0) {
+    return { excluded: false, flagged: false, reasons: [] };
+  }
+
+  const reasons: string[] = [];
+  const topics = community.contentTopics ?? [];
+  const searchText = [community.niche ?? '', community.description ?? ''].join(' ').toLowerCase();
+
+  // Category check: community self-declared topics
+  for (const cat of excludedCategories) {
+    if (topics.includes(cat)) {
+      reasons.push(`topic:${cat}`);
+    }
+  }
+
+  // Keyword check: against niche + description
+  for (const kw of excludedKeywords) {
+    if (searchText.includes(kw.toLowerCase())) {
+      reasons.push(`keyword:${kw}`);
+    }
+  }
+
+  return { excluded: reasons.length > 0, flagged: reasons.length > 0, reasons };
 }
 
 /**
@@ -110,6 +147,15 @@ export async function runMatching(campaignId: string, topN = 10, threshold = 40)
   const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
   if (!campaign) throw new Error(`Campaign ${campaignId} not found`);
 
+  // Load brand safety settings for the campaign's brand
+  const [brand] = await db
+    .select({ brandSafetyCategories: brands.brandSafetyCategories, brandSafetyKeywords: brands.brandSafetyKeywords })
+    .from(brands)
+    .where(eq(brands.id, campaign.brandId))
+    .limit(1);
+  const excludedCategories: string[] = brand?.brandSafetyCategories ?? [];
+  const excludedKeywords: string[] = brand?.brandSafetyKeywords ?? [];
+
   // Find communities already sent a request for this campaign
   const existingRequests = await db
     .select({ communityId: partnershipRequests.communityId })
@@ -135,6 +181,10 @@ export async function runMatching(campaignId: string, topN = 10, threshold = 40)
   // Score each community
   const scored: MatchResult[] = [];
   for (const community of eligible) {
+    // Apply brand safety filter: skip hard-excluded communities
+    const safety = checkBrandSafety(community, excludedCategories, excludedKeywords);
+    if (safety.excluded) continue;
+
     let score: number;
     let rationale: string;
 
@@ -155,6 +205,7 @@ export async function runMatching(campaignId: string, topN = 10, threshold = 40)
         score,
         rationale,
         proposedRateCents: community.baseRate ?? Math.round((campaign.budgetCents ?? 50000) / 5),
+        ...(safety.flagged ? { safetyFlagged: true, safetyFlagReasons: safety.reasons } : {}),
       });
     }
   }

@@ -132,13 +132,19 @@ export default function CommunitiesPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1 ml-4 text-right">
+                  <div className="flex flex-col items-end gap-2 ml-4 text-right">
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${c.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                       {c.status}
                     </span>
                     {c.baseRate && (
                       <span className="text-xs text-gray-500">${(c.baseRate / 100).toLocaleString()} base rate</span>
                     )}
+                    <Link
+                      href={`/community/communities/${c.id}/topics`}
+                      className="text-xs text-indigo-600 hover:underline"
+                    >
+                      Manage Topics
+                    </Link>
                   </div>
                 </div>
               </div>

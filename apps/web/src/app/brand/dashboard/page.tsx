@@ -63,6 +63,7 @@ export default function BrandDashboard() {
           <nav className="flex gap-4 text-sm">
             <Link href="/brand/dashboard" className="font-medium text-blue-600">Dashboard</Link>
             <Link href="/brand/campaigns/new" className="text-gray-600 hover:text-gray-900">New Campaign</Link>
+            <Link href="/brand/safety" className="text-gray-600 hover:text-gray-900">Brand Safety</Link>
           </nav>
         </div>
         <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-gray-800">

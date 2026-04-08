@@ -68,6 +68,45 @@ export const brandAuth = {
     request<Brand>('/api/brands/auth/me', { token }),
 };
 
+// ── Brand Safety ─────────────────────────────────────────────────────────────
+
+export interface BrandSafetySettings {
+  excludedCategories: string[];
+  excludedKeywords: string[];
+  availableCategories: readonly string[];
+}
+
+export const brandSafety = {
+  get: (token: string) =>
+    request<BrandSafetySettings>('/api/brands/auth/me/safety-settings', { token }),
+
+  update: (token: string, data: { excludedCategories: string[]; excludedKeywords: string[] }) =>
+    request<BrandSafetySettings>('/api/brands/auth/me/safety-settings', {
+      method: 'PUT',
+      token,
+      body: JSON.stringify(data),
+    }),
+};
+
+// ── Community Topics ──────────────────────────────────────────────────────────
+
+export interface CommunityTopics {
+  topics: string[];
+  availableTopics: readonly string[];
+}
+
+export const communityTopics = {
+  get: (token: string, communityId: string) =>
+    request<CommunityTopics>(`/api/owner/communities/${communityId}/topics`, { token }),
+
+  update: (token: string, communityId: string, topics: string[]) =>
+    request<CommunityTopics>(`/api/owner/communities/${communityId}/topics`, {
+      method: 'PUT',
+      token,
+      body: JSON.stringify({ topics }),
+    }),
+};
+
 // ── Community Auth ───────────────────────────────────────────────────────────
 
 export interface CommunityOwner {

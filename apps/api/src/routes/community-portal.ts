@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { eq, and, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import { communities, communityOwners, partnershipRequests, campaigns, brands, deals, campaignApplications } from '../db/schema';
+import { communities, communityOwners, partnershipRequests, campaigns, brands, deals, campaignApplications, COMMUNITY_TOPIC_CATEGORIES } from '../db/schema';
 import { requireAuth, requireRole } from '../middleware/auth';
 
 const router = Router();
@@ -93,6 +93,49 @@ router.patch('/communities/:id', async (req: Request, res: Response) => {
     .returning();
 
   return res.json(updated);
+});
+
+// ──────────────────────────────────────────────
+// Community content topics (brand safety)
+// ──────────────────────────────────────────────
+
+const TopicsSchema = z.object({
+  topics: z.array(z.enum(COMMUNITY_TOPIC_CATEGORIES as unknown as [string, ...string[]])).max(20),
+});
+
+// GET /api/owner/communities/:id/topics
+router.get('/communities/:id/topics', async (req: Request, res: Response) => {
+  const [community] = await db
+    .select({ id: communities.id, contentTopics: communities.contentTopics })
+    .from(communities)
+    .where(and(eq(communities.id, req.params.id), eq(communities.ownerId, req.auth!.sub)))
+    .limit(1);
+
+  if (!community) return res.status(404).json({ error: 'Community not found' });
+  return res.json({ topics: community.contentTopics ?? [], availableTopics: COMMUNITY_TOPIC_CATEGORIES });
+});
+
+// PUT /api/owner/communities/:id/topics
+router.put('/communities/:id/topics', async (req: Request, res: Response) => {
+  const parsed = TopicsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+  }
+
+  const [existing] = await db
+    .select({ id: communities.id })
+    .from(communities)
+    .where(and(eq(communities.id, req.params.id), eq(communities.ownerId, req.auth!.sub)))
+    .limit(1);
+  if (!existing) return res.status(404).json({ error: 'Community not found' });
+
+  const [updated] = await db
+    .update(communities)
+    .set({ contentTopics: [...new Set(parsed.data.topics)], updatedAt: new Date() })
+    .where(eq(communities.id, req.params.id))
+    .returning({ id: communities.id, contentTopics: communities.contentTopics });
+
+  return res.json({ topics: updated.contentTopics ?? [], availableTopics: COMMUNITY_TOPIC_CATEGORIES });
 });
 
 // ──────────────────────────────────────────────

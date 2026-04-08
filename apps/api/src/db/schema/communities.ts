@@ -1,5 +1,30 @@
 import { pgTable, uuid, text, varchar, integer, timestamp, pgEnum } from 'drizzle-orm/pg-core';
 
+// Self-declared topic categories a community can tag itself with
+export const COMMUNITY_TOPIC_CATEGORIES = [
+  'alcohol',
+  'tobacco',
+  'gambling',
+  'nsfw',
+  'politics',
+  'religion',
+  'violence',
+  'cannabis',
+  'firearms',
+  'fitness',
+  'finance',
+  'technology',
+  'gaming',
+  'travel',
+  'food',
+  'fashion',
+  'parenting',
+  'education',
+  'entertainment',
+] as const;
+
+export type CommunityTopicCategory = typeof COMMUNITY_TOPIC_CATEGORIES[number];
+
 export const communityOwnerStatusEnum = pgEnum('community_owner_status', ['active', 'inactive', 'suspended']);
 export const communityPlatformEnum = pgEnum('community_platform', [
   'discord',
@@ -45,6 +70,8 @@ export const communities = pgTable('communities', {
   adminPhone: varchar('admin_phone', { length: 50 }),
   adminFacebookPageId: text('admin_facebook_page_id'),
   vertical: varchar('vertical', { length: 50 }),
+  // Brand safety: self-declared content topic tags
+  contentTopics: text('content_topics').array().notNull().default([]),
   status: communityStatusEnum('status').notNull().default('pending_review'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

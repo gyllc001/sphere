@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import { brands } from '../db/schema';
+import { brands, BRAND_SAFETY_CATEGORIES } from '../db/schema';
 import { signToken, requireAuth, requireRole } from '../middleware/auth';
 
 const router = Router();
@@ -91,6 +91,57 @@ router.get('/me', requireAuth, requireRole('brand'), async (req: Request, res: R
 
   if (!brand) return res.status(404).json({ error: 'Not found' });
   return res.json(brand);
+});
+
+const SafetySettingsSchema = z.object({
+  excludedCategories: z.array(z.enum(BRAND_SAFETY_CATEGORIES as unknown as [string, ...string[]])).optional().default([]),
+  excludedKeywords: z.array(z.string().max(100)).max(100).optional().default([]),
+});
+
+// GET /api/brands/me/safety-settings — return brand's current safety configuration
+router.get('/me/safety-settings', requireAuth, requireRole('brand'), async (req: Request, res: Response) => {
+  const [brand] = await db
+    .select({ brandSafetyCategories: brands.brandSafetyCategories, brandSafetyKeywords: brands.brandSafetyKeywords })
+    .from(brands)
+    .where(eq(brands.id, req.auth!.sub))
+    .limit(1);
+
+  if (!brand) return res.status(404).json({ error: 'Not found' });
+  return res.json({
+    excludedCategories: brand.brandSafetyCategories ?? [],
+    excludedKeywords: brand.brandSafetyKeywords ?? [],
+    availableCategories: BRAND_SAFETY_CATEGORIES,
+  });
+});
+
+// PUT /api/brands/me/safety-settings — update brand's safety configuration
+router.put('/me/safety-settings', requireAuth, requireRole('brand'), async (req: Request, res: Response) => {
+  const parsed = SafetySettingsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+  }
+
+  const { excludedCategories, excludedKeywords } = parsed.data;
+
+  // Normalize keywords: lowercase, dedupe, strip empty
+  const normalizedKeywords = [...new Set(
+    excludedKeywords.map((k) => k.trim().toLowerCase()).filter(Boolean),
+  )];
+
+  await db
+    .update(brands)
+    .set({
+      brandSafetyCategories: excludedCategories,
+      brandSafetyKeywords: normalizedKeywords,
+      updatedAt: new Date(),
+    })
+    .where(eq(brands.id, req.auth!.sub));
+
+  return res.json({
+    excludedCategories,
+    excludedKeywords: normalizedKeywords,
+    availableCategories: BRAND_SAFETY_CATEGORIES,
+  });
 });
 
 export default router;

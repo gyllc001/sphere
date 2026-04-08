@@ -150,6 +150,8 @@ export interface Campaign {
   startDate?: string;
   endDate?: string;
   createdAt: string;
+  notifiedCount?: number;
+  interestedCount?: number;
 }
 
 export interface Partnership {
@@ -181,7 +183,7 @@ export const campaigns = {
     request<Campaign>(`/api/campaigns/${id}`, { token }),
 
   dashboard: (token: string) =>
-    request<{ total: number; byStatus: Record<string, number>; campaigns: Campaign[] }>(
+    request<{ total: number; byStatus: Record<string, number>; totalNotified: number; totalInterested: number; campaigns: Campaign[] }>(
       '/api/campaigns/dashboard/summary',
       { token }
     ),

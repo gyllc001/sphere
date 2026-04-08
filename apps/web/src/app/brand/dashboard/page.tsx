@@ -22,7 +22,7 @@ function formatBudget(cents?: number) {
 
 export default function BrandDashboard() {
   const router = useRouter();
-  const [data, setData] = useState<{ total: number; byStatus: Record<string, number>; campaigns: Campaign[] } | null>(null);
+  const [data, setData] = useState<{ total: number; byStatus: Record<string, number>; totalNotified: number; totalInterested: number; campaigns: Campaign[] } | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function BrandDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-lg border p-4">
             <p className="text-sm text-gray-500">Total Campaigns</p>
             <p className="text-3xl font-bold mt-1">{data.total}</p>
@@ -97,8 +97,14 @@ export default function BrandDashboard() {
             </p>
           </div>
           <div className="bg-white rounded-lg border p-4">
-            <p className="text-sm text-gray-500">Completed</p>
-            <p className="text-3xl font-bold mt-1 text-purple-600">{data.byStatus.completed || 0}</p>
+            <p className="text-sm text-gray-500">Notified</p>
+            <p className="text-3xl font-bold mt-1 text-indigo-600">{data.totalNotified ?? 0}</p>
+            <p className="text-xs text-gray-400 mt-1">community owners</p>
+          </div>
+          <div className="bg-white rounded-lg border p-4">
+            <p className="text-sm text-gray-500">Interested</p>
+            <p className="text-3xl font-bold mt-1 text-emerald-600">{data.totalInterested ?? 0}</p>
+            <p className="text-xs text-gray-400 mt-1">confirmed interest</p>
           </div>
         </div>
 
@@ -119,7 +125,7 @@ export default function BrandDashboard() {
                 className="block bg-white rounded-lg border p-5 hover:shadow-sm transition-shadow"
               >
                 <div className="flex items-start justify-between">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h2 className="font-semibold text-gray-900">{c.title}</h2>
                     <p className="text-sm text-gray-500 mt-1 line-clamp-2">{c.brief}</p>
                     <div className="flex gap-3 mt-2 text-xs text-gray-400">
@@ -127,8 +133,16 @@ export default function BrandDashboard() {
                       <span>Budget: {formatBudget(c.budgetCents)}</span>
                       <span>Created: {new Date(c.createdAt).toLocaleDateString()}</span>
                     </div>
+                    {(c.notifiedCount ?? 0) > 0 && (
+                      <div className="flex gap-3 mt-2 text-xs">
+                        <span className="text-indigo-600 font-medium">{c.notifiedCount} Notified</span>
+                        {(c.interestedCount ?? 0) > 0 && (
+                          <span className="text-emerald-600 font-medium">{c.interestedCount} Interested</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ml-4 ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}`}>
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ml-4 flex-shrink-0 ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}`}>
                     {c.status}
                   </span>
                 </div>

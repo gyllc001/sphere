@@ -79,6 +79,43 @@ export async function sendBrandFirstMatchEmail(opts: {
 }
 
 /**
+ * Notify a registered community owner that a new brand is looking for community partners
+ * matching their niche. Sent to all matches when a new brand posts their first campaign.
+ */
+export async function sendBrandAcquisitionNotificationEmail(opts: {
+  ownerEmail: string;
+  ownerName: string;
+  communityName: string;
+  brandName: string;
+  niche: string | null;
+  campaignId: string;
+}): Promise<void> {
+  const { ownerEmail, ownerName, communityName, brandName, niche, campaignId } = opts;
+  const url = `${BASE_URL}/community/opportunities`;
+  const nicheLabel = niche ? ` in ${niche}` : '';
+  const subject = `${brandName} is looking for community partners${nicheLabel} — is ${communityName} a fit?`;
+  const html = `
+<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+  <h2 style="color:#6366f1">New brand on Sphere — potential match for ${communityName}</h2>
+  <p>Hi ${ownerName},</p>
+  <p><strong>${brandName}</strong> just joined Sphere and is looking for community partners${nicheLabel}.</p>
+  <p>They've identified <strong>${communityName}</strong> as a strong match for their campaign.
+  View the campaign brief and decide whether you'd like to collaborate.</p>
+  <p style="margin:32px 0">
+    <a href="${url}" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600">
+      View Campaign Opportunity
+    </a>
+  </p>
+  <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+  <p style="color:#6b7280;font-size:12px">
+    You're receiving this because your community is listed on Sphere.
+    <a href="${BASE_URL}/community/settings">Manage notifications</a>
+  </p>
+</div>`;
+  await sendEmail(ownerEmail, subject, html);
+}
+
+/**
  * Notify a community owner that they have their first inbound deal opportunity.
  */
 export async function sendCommunityOwnerFirstOpportunityEmail(opts: {

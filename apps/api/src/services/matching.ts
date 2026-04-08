@@ -8,7 +8,11 @@ import Anthropic from '@anthropic-ai/sdk';
 import { db } from '../db';
 import { campaigns, communities, communityOwners, partnershipRequests, brands } from '../db/schema';
 import { eq, and, notInArray, inArray, count } from 'drizzle-orm';
-import { sendBrandFirstMatchEmail, sendCommunityOwnerFirstOpportunityEmail } from './email';
+import {
+  sendBrandFirstMatchEmail,
+  sendCommunityOwnerFirstOpportunityEmail,
+  sendBrandAcquisitionNotificationEmail,
+} from './email';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -140,10 +144,39 @@ Respond with JSON only (no markdown):
 }
 
 /**
+ * Send outreach to scraped (unregistered) community owners for a new brand's campaign.
+ * Full message copy is pending board approval (SPHA-50). Currently stubs to a log.
+ */
+async function notifyScrapedCommunities(
+  campaignId: string,
+  brandName: string,
+  niche: string | null,
+  matchedScrapedIds: string[],
+): Promise<void> {
+  if (matchedScrapedIds.length === 0) return;
+  // TODO (SPHA-50): board must approve final message copy before live outreach is enabled.
+  // Once approved, send a personalised DM/email via the contact info on scrapedCommunities.
+  console.log(
+    `[acquisition] ${matchedScrapedIds.length} scraped communities matched for brand "${brandName}" ` +
+    `(campaign ${campaignId}). Outreach pending SPHA-50 board approval.`,
+  );
+}
+
+/**
  * Run matching for a campaign: score all eligible communities, create partnership_requests
  * for the top N matches above threshold.
+ *
+ * @param notifyAll  When true (first-campaign mode), sends brand-acquisition notification
+ *                   emails to ALL matched registered community owners, not just first-timers.
+ *                   Also fires scraped-community outreach stub.
  */
-export async function runMatching(campaignId: string, topN = 10, threshold = 40): Promise<MatchResult[]> {
+export async function runMatching(
+  campaignId: string,
+  topN = 10,
+  threshold = 40,
+  opts: { notifyAll?: boolean } = {},
+): Promise<MatchResult[]> {
+  const { notifyAll = false } = opts;
   // Load campaign
   const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
   if (!campaign) throw new Error(`Campaign ${campaignId} not found`);
@@ -238,7 +271,7 @@ export async function runMatching(campaignId: string, topN = 10, threshold = 40)
       await db.update(campaigns).set({ status: 'matching', updatedAt: new Date() }).where(eq(campaigns.id, campaignId));
     }
 
-    // ── First-match notifications ────────────────────────────────────────────
+    // ── Notifications ────────────────────────────────────────────────────────
 
     // Brand: notify if this is the first batch of matches for this campaign
     if (existingRequests.length === 0 && brand?.brandEmail) {
@@ -251,28 +284,12 @@ export async function runMatching(campaignId: string, topN = 10, threshold = 40)
       }).catch((err) => console.error('[email] brand first-match notification failed:', err));
     }
 
-    // Community owners: notify each owner whose community gets its very first opportunity
     const matchedCommunityIds = top.map((m) => m.communityId);
-    // Count prior partnership_requests for these communities (excluding the ones we just created)
-    const priorCountRows = await db
-      .select({ communityId: partnershipRequests.communityId, cnt: count() })
-      .from(partnershipRequests)
-      .where(
-        and(
-          inArray(partnershipRequests.communityId, matchedCommunityIds),
-          // The rows we just inserted are included; we want only those with count === 1 (just now)
-          // so we exclude campaignId = this campaign... actually simpler: count all then subtract 1
-        ),
-      )
-      .groupBy(partnershipRequests.communityId);
 
-    const priorCountMap = new Map(priorCountRows.map((r) => [r.communityId, Number(r.cnt)]));
-
-    // Communities where total count === 1 means this is their first-ever opportunity
-    const firstTimeCommunityIds = matchedCommunityIds.filter((id) => (priorCountMap.get(id) ?? 0) === 1);
-
-    if (firstTimeCommunityIds.length > 0) {
-      const firstTimeCommunities = await db
+    if (notifyAll) {
+      // ── Brand-acquisition mode: new brand's first campaign ────────────────
+      // Notify ALL matched registered community owners with the acquisition template.
+      const allMatchedOwners = await db
         .select({
           communityId: communities.id,
           communityName: communities.name,
@@ -281,17 +298,57 @@ export async function runMatching(campaignId: string, topN = 10, threshold = 40)
         })
         .from(communities)
         .innerJoin(communityOwners, eq(communities.ownerId, communityOwners.id))
-        .where(inArray(communities.id, firstTimeCommunityIds));
+        .where(inArray(communities.id, matchedCommunityIds));
 
-      for (const c of firstTimeCommunities) {
-        sendCommunityOwnerFirstOpportunityEmail({
+      for (const c of allMatchedOwners) {
+        sendBrandAcquisitionNotificationEmail({
           ownerEmail: c.ownerEmail,
           ownerName: c.ownerName,
           communityName: c.communityName,
-          campaignTitle: campaign.title,
           brandName: brand?.brandName ?? 'A brand',
-          requestId: c.communityId, // used as deep-link context
-        }).catch((err) => console.error('[email] community owner first-opportunity notification failed:', err));
+          niche: campaign.niche ?? null,
+          campaignId,
+        }).catch((err) => console.error('[email] brand-acquisition community notification failed:', err));
+      }
+
+      // Stub: outreach to scraped (unregistered) communities pending SPHA-50 board approval
+      notifyScrapedCommunities(campaignId, brand?.brandName ?? 'A brand', campaign.niche ?? null, [])
+        .catch((err) => console.error('[acquisition] scraped community notify failed:', err));
+    } else {
+      // ── Standard matching: only notify first-time community owners ─────────
+      const priorCountRows = await db
+        .select({ communityId: partnershipRequests.communityId, cnt: count() })
+        .from(partnershipRequests)
+        .where(inArray(partnershipRequests.communityId, matchedCommunityIds))
+        .groupBy(partnershipRequests.communityId);
+
+      const priorCountMap = new Map(priorCountRows.map((r) => [r.communityId, Number(r.cnt)]));
+
+      // count === 1 means this is their very first opportunity (just inserted)
+      const firstTimeCommunityIds = matchedCommunityIds.filter((id) => (priorCountMap.get(id) ?? 0) === 1);
+
+      if (firstTimeCommunityIds.length > 0) {
+        const firstTimeCommunities = await db
+          .select({
+            communityId: communities.id,
+            communityName: communities.name,
+            ownerEmail: communityOwners.email,
+            ownerName: communityOwners.name,
+          })
+          .from(communities)
+          .innerJoin(communityOwners, eq(communities.ownerId, communityOwners.id))
+          .where(inArray(communities.id, firstTimeCommunityIds));
+
+        for (const c of firstTimeCommunities) {
+          sendCommunityOwnerFirstOpportunityEmail({
+            ownerEmail: c.ownerEmail,
+            ownerName: c.ownerName,
+            communityName: c.communityName,
+            campaignTitle: campaign.title,
+            brandName: brand?.brandName ?? 'A brand',
+            requestId: c.communityId,
+          }).catch((err) => console.error('[email] community owner first-opportunity notification failed:', err));
+        }
       }
     }
   }

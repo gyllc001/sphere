@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, count, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
 import { campaigns, partnershipRequests, deals, communities, communityOwners, campaignApplications } from '../db/schema';
 import { requireAuth, requireRole } from '../middleware/auth';
+import { runMatching } from '../services/matching';
 
 const router = Router();
 
@@ -33,6 +34,14 @@ router.post('/', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
   }
   const data = parsed.data;
+
+  // Check whether this brand already has campaigns (before insert)
+  const [existingCount] = await db
+    .select({ cnt: count() })
+    .from(campaigns)
+    .where(eq(campaigns.brandId, req.auth!.sub));
+  const isFirstCampaign = Number(existingCount?.cnt ?? 0) === 0;
+
   const [campaign] = await db.insert(campaigns).values({
     brandId: req.auth!.sub,
     title: data.title,
@@ -46,6 +55,13 @@ router.post('/', async (req: Request, res: Response) => {
     endDate: data.endDate ? new Date(data.endDate) : undefined,
   }).returning();
 
+  // New-brand acquisition: trigger matching immediately for the first campaign.
+  // notifyAll=true sends brand-acquisition emails to ALL matched community owners (not just first-timers).
+  if (isFirstCampaign) {
+    runMatching(campaign.id, 10, 40, { notifyAll: true })
+      .catch((err) => console.error('[acquisition] first-campaign matching failed:', err));
+  }
+
   return res.status(201).json(campaign);
 });
 
@@ -57,7 +73,30 @@ router.get('/', async (req: Request, res: Response) => {
     .where(eq(campaigns.brandId, req.auth!.sub))
     .orderBy(campaigns.createdAt);
 
-  return res.json(results);
+  if (results.length === 0) return res.json([]);
+
+  const campaignIds = results.map((c) => c.id);
+
+  // Aggregate notified (any partnership request) and interested (accepted) counts per campaign
+  const notifRows = await db
+    .select({
+      campaignId: partnershipRequests.campaignId,
+      notifiedCount: count(),
+      interestedCount: sql<number>`count(*) filter (where ${partnershipRequests.status} = 'accepted')`,
+    })
+    .from(partnershipRequests)
+    .where(sql`${partnershipRequests.campaignId} = ANY(${sql.raw(`ARRAY[${campaignIds.map((id) => `'${id}'`).join(',')}]::uuid[]`)})`)
+    .groupBy(partnershipRequests.campaignId);
+
+  const notifMap = new Map(notifRows.map((r) => [r.campaignId, r]));
+
+  const enriched = results.map((c) => ({
+    ...c,
+    notifiedCount: Number(notifMap.get(c.id)?.notifiedCount ?? 0),
+    interestedCount: Number(notifMap.get(c.id)?.interestedCount ?? 0),
+  }));
+
+  return res.json(enriched);
 });
 
 // GET /api/campaigns/:id — get a single campaign (must belong to brand)
@@ -69,7 +108,20 @@ router.get('/:id', async (req: Request, res: Response) => {
     .limit(1);
 
   if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
-  return res.json(campaign);
+
+  const [notifRow] = await db
+    .select({
+      notifiedCount: count(),
+      interestedCount: sql<number>`count(*) filter (where ${partnershipRequests.status} = 'accepted')`,
+    })
+    .from(partnershipRequests)
+    .where(eq(partnershipRequests.campaignId, campaign.id));
+
+  return res.json({
+    ...campaign,
+    notifiedCount: Number(notifRow?.notifiedCount ?? 0),
+    interestedCount: Number(notifRow?.interestedCount ?? 0),
+  });
 });
 
 // PATCH /api/campaigns/:id — update campaign
@@ -273,13 +325,37 @@ router.get('/dashboard/summary', async (req: Request, res: Response) => {
     .from(campaigns)
     .where(eq(campaigns.brandId, req.auth!.sub));
 
+  let notifRows: { campaignId: string; notifiedCount: number; interestedCount: number }[] = [];
+  if (allCampaigns.length > 0) {
+    const campaignIds = allCampaigns.map((c) => c.id);
+    notifRows = await db
+      .select({
+        campaignId: partnershipRequests.campaignId,
+        notifiedCount: count(),
+        interestedCount: sql<number>`count(*) filter (where ${partnershipRequests.status} = 'accepted')`,
+      })
+      .from(partnershipRequests)
+      .where(sql`${partnershipRequests.campaignId} = ANY(${sql.raw(`ARRAY[${campaignIds.map((id) => `'${id}'`).join(',')}]::uuid[]`)})`)
+      .groupBy(partnershipRequests.campaignId) as { campaignId: string; notifiedCount: number; interestedCount: number }[];
+  }
+
+  const notifMap = new Map(notifRows.map((r) => [r.campaignId, r]));
+
+  const enrichedCampaigns = allCampaigns.map((c) => ({
+    ...c,
+    notifiedCount: Number(notifMap.get(c.id)?.notifiedCount ?? 0),
+    interestedCount: Number(notifMap.get(c.id)?.interestedCount ?? 0),
+  }));
+
   const summary = {
     total: allCampaigns.length,
     byStatus: allCampaigns.reduce<Record<string, number>>((acc, c) => {
       acc[c.status] = (acc[c.status] || 0) + 1;
       return acc;
     }, {}),
-    campaigns: allCampaigns,
+    totalNotified: notifRows.reduce((sum, r) => sum + Number(r.notifiedCount), 0),
+    totalInterested: notifRows.reduce((sum, r) => sum + Number(r.interestedCount), 0),
+    campaigns: enrichedCampaigns,
   };
 
   return res.json(summary);

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { communityAuth, communityPortal, getToken, clearToken, type CommunityOwner } from '@/lib/api';
 
-const STEPS = ['Your Profile', 'List Your Community', 'You\'re All Set'];
+const STEPS = ['Welcome', 'List Your Community', 'Collab Preferences', 'Payout Setup', 'You\'re All Set'];
 
 const PLATFORM_OPTIONS = [
   { value: 'discord', label: 'Discord' },
@@ -31,12 +31,26 @@ const MEMBER_COUNT_RANGES = [
   { label: '50,000+', value: 50000 },
 ];
 
+const CONTENT_TYPES = [
+  'Sponsored posts',
+  'Product reviews',
+  'Newsletter mentions',
+  'Discord announcements',
+  'Giveaways',
+  'AMA / Q&A',
+  'Video content',
+  'Podcast mentions',
+  'Community challenges',
+  'Affiliate links',
+];
+
 export default function CommunityOnboarding() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [owner, setOwner] = useState<CommunityOwner | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [createdCommunityId, setCreatedCommunityId] = useState<string | null>(null);
 
   const [communityForm, setCommunityForm] = useState({
     name: '',
@@ -48,6 +62,12 @@ export default function CommunityOnboarding() {
     memberCount: 0,
     baseRate: '',
     skipListing: false,
+  });
+
+  const [collabForm, setCollabForm] = useState({
+    contentTypesAccepted: [] as string[],
+    topicsExcluded: '',
+    customTopicExcluded: '',
   });
 
   useEffect(() => {
@@ -66,6 +86,15 @@ export default function CommunityOnboarding() {
     setCommunityForm((c) => ({ ...c, [field]: value }));
   }
 
+  function toggleContentType(type: string) {
+    setCollabForm((f) => ({
+      ...f,
+      contentTypesAccepted: f.contentTypesAccepted.includes(type)
+        ? f.contentTypesAccepted.filter(t => t !== type)
+        : [...f.contentTypesAccepted, type],
+    }));
+  }
+
   async function handleListingSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (communityForm.skipListing) {
@@ -81,7 +110,7 @@ export default function CommunityOnboarding() {
     const token = getToken('community');
     if (!token) return;
     try {
-      await communityPortal.createCommunity(token, {
+      const community = await communityPortal.createCommunity(token, {
         name: communityForm.name,
         platform: communityForm.platform as any,
         platformUrl: communityForm.platformUrl || undefined,
@@ -91,12 +120,40 @@ export default function CommunityOnboarding() {
         memberCount: communityForm.memberCount || undefined,
         baseRate: communityForm.baseRate ? Math.round(parseFloat(communityForm.baseRate) * 100) : undefined,
       });
+      setCreatedCommunityId((community as any).id ?? null);
       setStep(2);
     } catch (err: any) {
       setError(err.message || 'Failed to create community listing');
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleCollabPrefsSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!createdCommunityId) { setStep(3); return; }
+    setLoading(true);
+    setError('');
+    const token = getToken('community');
+    if (!token) return;
+
+    const topicsExcluded = collabForm.topicsExcluded
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean);
+    if (collabForm.customTopicExcluded.trim()) topicsExcluded.push(collabForm.customTopicExcluded.trim());
+
+    try {
+      await communityPortal.updateCommunity(token, createdCommunityId, {
+        contentTypesAccepted: collabForm.contentTypesAccepted.length ? collabForm.contentTypesAccepted : undefined,
+        topicsExcluded: topicsExcluded.length ? topicsExcluded : undefined,
+      });
+    } catch {
+      // Non-fatal — prefs are optional
+    } finally {
+      setLoading(false);
+    }
+    setStep(3);
   }
 
   if (!owner) {
@@ -129,19 +186,19 @@ export default function CommunityOnboarding() {
                   {i < step ? '✓' : i + 1}
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div className={`h-0.5 w-16 sm:w-32 mx-1 ${i < step ? 'bg-green-600' : 'bg-gray-200'}`} />
+                  <div className={`h-0.5 w-8 sm:w-16 mx-1 ${i < step ? 'bg-green-600' : 'bg-gray-200'}`} />
                 )}
               </div>
             ))}
           </div>
           <div className="flex justify-between text-xs text-gray-500 mt-1">
             {STEPS.map((s, i) => (
-              <span key={i} className={i === step ? 'text-green-600 font-medium' : ''}>{s}</span>
+              <span key={i} className={`text-center ${i === step ? 'text-green-600 font-medium' : ''}`}>{s}</span>
             ))}
           </div>
         </div>
 
-        {/* Step 0: Profile intro */}
+        {/* Step 0: Welcome */}
         {step === 0 && (
           <div className="bg-white rounded-xl shadow-sm border p-8">
             <h1 className="text-xl font-bold mb-1">Welcome to Sphere, {owner.name}!</h1>
@@ -289,7 +346,7 @@ export default function CommunityOnboarding() {
                   disabled={loading}
                   className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50"
                 >
-                  {loading ? 'Creating...' : (communityForm.skipListing ? 'Skip to dashboard →' : 'List my community →')}
+                  {loading ? 'Creating...' : (communityForm.skipListing ? 'Continue →' : 'List my community →')}
                 </button>
               </div>
               <button
@@ -303,8 +360,119 @@ export default function CommunityOnboarding() {
           </div>
         )}
 
-        {/* Step 2: Confirmation */}
+        {/* Step 2: Collab preferences */}
         {step === 2 && (
+          <div className="bg-white rounded-xl shadow-sm border p-8">
+            <h1 className="text-xl font-bold mb-1">Collab preferences</h1>
+            <p className="text-sm text-gray-500 mb-6">Tell brands what types of content you're open to and what topics you won't promote. This helps us match you with relevant opportunities.</p>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">{error}</div>
+            )}
+
+            <form onSubmit={handleCollabPrefsSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Content types I accept</label>
+                <div className="flex flex-wrap gap-2">
+                  {CONTENT_TYPES.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => toggleContentType(type)}
+                      className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                        collabForm.contentTypesAccepted.includes(type)
+                          ? 'bg-green-600 text-white border-green-600'
+                          : 'bg-white text-gray-600 border-gray-300 hover:border-green-400'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+                {collabForm.contentTypesAccepted.length === 0 && (
+                  <p className="text-xs text-gray-400 mt-2">Select at least one to help brands understand your preferences (optional)</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Topics I won't promote</label>
+                <input
+                  type="text"
+                  value={collabForm.topicsExcluded}
+                  onChange={(e) => setCollabForm(f => ({ ...f, topicsExcluded: e.target.value }))}
+                  placeholder="e.g. gambling, adult content, political content"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">Comma-separated list</p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : 'Continue →'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(3)}
+                  className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-md"
+                >
+                  Skip
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Step 3: Payout setup */}
+        {step === 3 && (
+          <div className="bg-white rounded-xl shadow-sm border p-8">
+            <h1 className="text-xl font-bold mb-1">Payout setup</h1>
+            <p className="text-sm text-gray-500 mb-6">Set up how you'll receive payments for completed deals.</p>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+              <p className="text-sm font-medium text-amber-800 mb-1">Beta — manual payouts</p>
+              <p className="text-sm text-amber-700">During beta, all payouts are processed manually by the Sphere team within 3 business days of deal confirmation. Full Stripe Connect and PayPal integration is coming soon.</p>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <div className="border rounded-lg p-4 opacity-50 cursor-not-allowed">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">S</div>
+                  <div>
+                    <p className="text-sm font-medium">Stripe Connect</p>
+                    <p className="text-xs text-gray-500">Instant bank transfers — coming soon</p>
+                  </div>
+                  <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">Soon</span>
+                </div>
+              </div>
+              <div className="border rounded-lg p-4 opacity-50 cursor-not-allowed">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center text-white font-bold text-sm">P</div>
+                  <div>
+                    <p className="text-sm font-medium">PayPal</p>
+                    <p className="text-xs text-gray-500">PayPal transfers — coming soon</p>
+                  </div>
+                  <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">Soon</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-400 mb-6">For beta payouts, our team will contact you via email to arrange bank transfer or wire. Make sure your profile email is up to date.</p>
+
+            <button
+              onClick={() => setStep(4)}
+              className="w-full bg-green-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-green-700"
+            >
+              Continue →
+            </button>
+          </div>
+        )}
+
+        {/* Step 4: Confirmation */}
+        {step === 4 && (
           <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -314,7 +482,7 @@ export default function CommunityOnboarding() {
             <h1 className="text-xl font-bold mb-2">You're live on Sphere!</h1>
             {!communityForm.skipListing && (
               <p className="text-sm text-gray-500 mb-1">
-                Your community listing is under review and will be visible to brands shortly.
+                Your community listing is pending verification and will be visible to brands shortly.
               </p>
             )}
             <p className="text-sm text-gray-500 mb-6">

@@ -148,6 +148,36 @@ router.get('/:id/partnerships', async (req: Request, res: Response) => {
   return res.json(enriched);
 });
 
+// GET /api/campaigns/communities/:communityId — public community profile (brands can view)
+router.get('/communities/:communityId', async (req: Request, res: Response) => {
+  const [community] = await db
+    .select({
+      id: communities.id,
+      name: communities.name,
+      platform: communities.platform,
+      platformUrl: communities.platformUrl,
+      niche: communities.niche,
+      description: communities.description,
+      memberCount: communities.memberCount,
+      engagementRate: communities.engagementRate,
+      vertical: communities.vertical,
+      contentTypesAccepted: communities.contentTypesAccepted,
+      topicsExcluded: communities.topicsExcluded,
+      verificationStatus: communities.verificationStatus,
+      status: communities.status,
+      baseRate: communities.baseRate,
+      ownerName: communityOwners.name,
+      createdAt: communities.createdAt,
+    })
+    .from(communities)
+    .innerJoin(communityOwners, eq(communities.ownerId, communityOwners.id))
+    .where(eq(communities.id, req.params.communityId))
+    .limit(1);
+
+  if (!community) return res.status(404).json({ error: 'Community not found' });
+  return res.json(community);
+});
+
 // GET /api/campaigns/dashboard — aggregated dashboard view
 router.get('/dashboard/summary', async (req: Request, res: Response) => {
   const allCampaigns = await db

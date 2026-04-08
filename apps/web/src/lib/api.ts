@@ -169,7 +169,29 @@ export interface Community {
   adminPhone?: string;
   adminFacebookPageId?: string;
   vertical?: string;
+  contentTypesAccepted?: string; // JSON array string
+  topicsExcluded?: string; // JSON array string
+  verificationStatus?: string;
   status: string;
+}
+
+export interface CommunityProfile {
+  id: string;
+  name: string;
+  platform: string;
+  platformUrl?: string;
+  niche?: string;
+  description?: string;
+  memberCount: number;
+  engagementRate?: string;
+  vertical?: string;
+  contentTypesAccepted?: string;
+  topicsExcluded?: string;
+  verificationStatus: string;
+  status: string;
+  baseRate?: number;
+  ownerName: string;
+  createdAt: string;
 }
 
 export interface Opportunity {
@@ -192,8 +214,11 @@ export interface Opportunity {
 }
 
 export const communityPortal = {
-  createCommunity: (token: string, data: Partial<Community>) =>
+  createCommunity: (token: string, data: Partial<Community> & { contentTypesAccepted?: string[]; topicsExcluded?: string[] }) =>
     request<Community>('/api/owner/communities', { method: 'POST', token, body: JSON.stringify(data) }),
+
+  updateCommunity: (token: string, id: string, data: Partial<Community> & { contentTypesAccepted?: string[]; topicsExcluded?: string[] }) =>
+    request<Community>(`/api/owner/communities/${id}`, { method: 'PATCH', token, body: JSON.stringify(data) }),
 
   listCommunities: (token: string) =>
     request<Community[]>('/api/owner/communities', { token }),
@@ -212,6 +237,11 @@ export const communityPortal = {
       token,
       body: JSON.stringify({ action, ...extra }),
     }),
+};
+
+export const communityProfileApi = {
+  get: (token: string, communityId: string) =>
+    request<CommunityProfile>(`/api/campaigns/communities/${communityId}`, { token }),
 };
 
 // ── Admin ─────────────────────────────────────────────────────────────────────

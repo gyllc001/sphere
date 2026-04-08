@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { communityAuth, setToken } from '@/lib/api';
+import { track, identifyUser } from '@/lib/analytics';
 
 export default function CommunityLogin() {
   const router = useRouter();
@@ -17,8 +18,10 @@ export default function CommunityLogin() {
     setError('');
     setLoading(true);
     try {
-      const { token } = await communityAuth.login(email, password);
+      const { token, owner } = await communityAuth.login(email, password);
       setToken('community', token);
+      identifyUser(owner.id, { email: owner.email, name: owner.name, user_type: 'community' });
+      track('session_started', { user_type: 'community' });
       router.push('/community/communities');
     } catch (err: any) {
       setError(err.message || 'Login failed');

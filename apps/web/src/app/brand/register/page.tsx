@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { brandAuth, setToken } from '@/lib/api';
+import { track, identifyUser } from '@/lib/analytics';
 
 export default function BrandRegister() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function BrandRegister() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    track('signup_started', { user_type: 'brand' });
     try {
       const payload = {
         name: form.name,
@@ -35,8 +37,10 @@ export default function BrandRegister() {
         ...(form.industry && { industry: form.industry }),
         ...(form.description && { description: form.description }),
       };
-      const { token } = await brandAuth.register(payload);
+      const { token, brand } = await brandAuth.register(payload);
       setToken('brand', token);
+      identifyUser(brand.id, { email: brand.email, name: brand.name, user_type: 'brand', industry: brand.industry });
+      track('signup_completed', { user_type: 'brand', industry: brand.industry });
       router.push('/brand/onboarding');
     } catch (err: any) {
       setError(err.message || 'Registration failed');

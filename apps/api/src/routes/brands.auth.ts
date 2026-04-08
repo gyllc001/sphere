@@ -10,6 +10,7 @@ import {
   sendSignupConfirmationEmail,
   sendPasswordResetEmail,
 } from '../services/email';
+import { trackServerEvent } from '../services/analytics';
 
 const router = Router();
 
@@ -70,6 +71,7 @@ router.post('/register', async (req: Request, res: Response) => {
   }).catch((err) => console.error('[email] signup confirmation failed:', err));
 
   const token = signToken(brand.id, 'brand');
+  trackServerEvent(brand.id, 'signup_completed', { user_type: 'brand', industry });
   return res.status(201).json({ token, brand });
 });
 

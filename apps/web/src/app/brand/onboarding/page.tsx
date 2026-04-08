@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { brandAuth, campaigns, getToken, clearToken, type Brand } from '@/lib/api';
+import { track } from '@/lib/analytics';
 
 const STEPS = ['Choose Plan', 'Company Profile', 'Launch Your First Campaign', 'You\'re All Set'];
 
@@ -129,6 +130,7 @@ export default function BrandOnboarding() {
 
   async function handleProfileNext(e: React.FormEvent) {
     e.preventDefault();
+    track('profile_completed', { user_type: 'brand', industry: profile.industry });
     setStep(2);
   }
 
@@ -151,6 +153,7 @@ export default function BrandOnboarding() {
         objectives: campaignForm.objectives || undefined,
         targetAudience: profile.targetAudience || undefined,
       });
+      track('first_deal_initiated', { user_type: 'brand', source: 'onboarding' });
       setStep(3);
     } catch (err: any) {
       setError(err.message || 'Failed to create campaign');

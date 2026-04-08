@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { dealsApi, disputesApi, contentApi, getToken, type Deal, type Dispute, type ContentSubmission } from '@/lib/api';
+import { track } from '@/lib/analytics';
 
 const STATUS_LABELS: Record<string, string> = {
   agreed: 'Deal Agreed',
@@ -107,6 +108,7 @@ function ContentWorkflow({
     try {
       const urls = assetUrls.split('\n').map(u => u.trim()).filter(Boolean);
       await contentApi.submit(token, dealId, { brief: brief.trim(), assetUrls: urls });
+      track('content_submitted', { deal_id: dealId });
       setBrief('');
       setAssetUrls('');
       setShowSubmitForm(false);
@@ -123,6 +125,7 @@ function ContentWorkflow({
     setActionError('');
     try {
       await contentApi.approve(token, dealId, submissionId);
+      track('content_approved', { deal_id: dealId, submission_id: submissionId });
       load();
     } catch (err: any) {
       setActionError(err.message);
@@ -167,6 +170,7 @@ function ContentWorkflow({
     setActionError('');
     try {
       await contentApi.confirm(token, dealId, submissionId);
+      track('payout_requested', { deal_id: dealId, submission_id: submissionId });
       load();
     } catch (err: any) {
       setActionError(err.message);
@@ -498,7 +502,7 @@ export default function DealPage() {
     const auth = getActiveAuth();
     if (!auth) return;
     setLoading(true); setActionError('');
-    try { const updated = await dealsApi.sign(auth.token, id); setDeal(updated); }
+    try { const updated = await dealsApi.sign(auth.token, id); track('deal_accepted', { user_type: auth.role, deal_id: id }); setDeal(updated); }
     catch (err: any) { setActionError(err.message); }
     finally { setLoading(false); }
   }

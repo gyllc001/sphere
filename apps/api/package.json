@@ -24,6 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^8.0.5",
     "pg": "^8.11.5",
+    "posthog-node": "^5.29.1",
     "resend": "^6.10.0",
     "stripe": "^15.12.0",
     "zod": "^3.23.8"

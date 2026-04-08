@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { communityProfileApi, getToken, type CommunityProfile } from '@/lib/api';
+import { track } from '@/lib/analytics';
 
 const PLATFORM_LABELS: Record<string, string> = {
   discord: 'Discord',
@@ -35,7 +36,7 @@ export default function CommunityProfilePage() {
     const token = getToken('brand');
     if (!token) { router.replace('/brand/login'); return; }
     communityProfileApi.get(token, communityId)
-      .then(setCommunity)
+      .then((c) => { setCommunity(c); track('first_match_viewed', { user_type: 'brand', community_id: communityId, platform: c.platform }); })
       .catch((err) => setError(err.message));
   }, [communityId]);
 

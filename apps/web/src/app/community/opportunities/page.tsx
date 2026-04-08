@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { communityPortal, getToken, clearToken, type Opportunity } from '@/lib/api';
 import { SphereWordmark } from '@/components/SphereLogo';
+import { track } from '@/lib/analytics';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -47,6 +48,7 @@ export default function OpportunitiesPage() {
     setResponding(requestId);
     try {
       await communityPortal.respond(token, requestId, action);
+      track(action === 'accept' ? 'deal_accepted' : 'deal_declined', { user_type: 'community', request_id: requestId });
       loadOpportunities();
     } catch (err: any) {
       setError(err.message);
@@ -65,6 +67,7 @@ export default function OpportunitiesPage() {
         counterRateCents: Math.round(parseFloat(counterRate) * 100),
         message: counterMessage || undefined,
       });
+      track('deal_countered', { user_type: 'community', request_id: counterModal.requestId });
       setCounterModal(null);
       setCounterRate('');
       setCounterMessage('');

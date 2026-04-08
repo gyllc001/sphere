@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SphereWordmark } from '@/components/SphereLogo';
 import { campaigns, getToken } from '@/lib/api';
+import { track } from '@/lib/analytics';
 
 export default function NewCampaign() {
   const router = useRouter();
@@ -45,6 +46,7 @@ export default function NewCampaign() {
       if (form.budgetCents) payload.budgetCents = Math.round(parseFloat(form.budgetCents) * 100);
 
       const campaign = await campaigns.create(token, payload as any);
+      track('first_deal_initiated', { user_type: 'brand', campaign_id: campaign.id, niche: form.niche });
       router.push(`/brand/campaigns/${campaign.id}`);
     } catch (err: any) {
       setError(err.message || 'Failed to create campaign');

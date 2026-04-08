@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { communityAuth, setToken } from '@/lib/api';
+import { track, identifyUser } from '@/lib/analytics';
 
 export default function CommunityRegister() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function CommunityRegister() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    track('signup_started', { user_type: 'community' });
     try {
       const payload = {
         name: form.name,
@@ -26,8 +28,10 @@ export default function CommunityRegister() {
         password: form.password,
         ...(form.bio && { bio: form.bio }),
       };
-      const { token } = await communityAuth.register(payload);
+      const { token, owner } = await communityAuth.register(payload);
       setToken('community', token);
+      identifyUser(owner.id, { email: owner.email, name: owner.name, user_type: 'community' });
+      track('signup_completed', { user_type: 'community' });
       router.push('/community/onboarding');
     } catch (err: any) {
       setError(err.message || 'Registration failed');

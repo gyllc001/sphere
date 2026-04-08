@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { brandAuth, setToken } from '@/lib/api';
 import { SphereWordmark } from '@/components/SphereLogo';
+import { track, identifyUser } from '@/lib/analytics';
 
 export default function BrandLogin() {
   const router = useRouter();
@@ -18,8 +19,10 @@ export default function BrandLogin() {
     setError('');
     setLoading(true);
     try {
-      const { token } = await brandAuth.login(email, password);
+      const { token, brand } = await brandAuth.login(email, password);
       setToken('brand', token);
+      identifyUser(brand.id, { email: brand.email, name: brand.name, user_type: 'brand' });
+      track('session_started', { user_type: 'brand' });
       router.push('/brand/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed');

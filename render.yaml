@@ -7,6 +7,8 @@ services:
     dockerfilePath: apps/api/Dockerfile
     # Override CMD to run migrations before starting the server
     healthCheckPath: /health
+    branch: main
+    autoDeploy: true
     plan: free
     envVars:
       - key: DATABASE_URL

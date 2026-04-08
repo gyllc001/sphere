@@ -72,13 +72,27 @@ app.get('/health/db-tables', async (_req, res) => {
     results.brands_error = String(err);
   }
 
-  // Test Drizzle ORM query on brands table
+  // Test raw parameterized WHERE query on brands
+  try {
+    const paramResult = await dbPool.query('SELECT id FROM brands WHERE email = $1 LIMIT 1', ['nobody@nowhere.invalid']);
+    results.brands_where_raw_rows = paramResult.rows.length;
+  } catch (err) {
+    results.brands_where_raw_error = String(err);
+  }
+
+  // Test Drizzle ORM query on brands table (no WHERE)
   try {
     const { db: drizzleDb } = await import('./db');
     const { brands: brandsTable } = await import('./db/schema');
+    const { eq: eqFn } = await import('drizzle-orm');
     const rows = await drizzleDb.select({ id: brandsTable.id }).from(brandsTable).limit(1);
-    results.drizzle_brands_ok = true;
-    results.drizzle_brands_sample = rows.length;
+    results.drizzle_brands_nowhere_ok = true;
+    results.drizzle_brands_nowhere_sample = rows.length;
+
+    // Test Drizzle ORM query with WHERE clause
+    const whereRows = await drizzleDb.select({ id: brandsTable.id }).from(brandsTable).where(eqFn(brandsTable.email, 'nobody@nowhere.invalid')).limit(1);
+    results.drizzle_brands_where_ok = true;
+    results.drizzle_brands_where_rows = whereRows.length;
   } catch (err) {
     results.drizzle_brands_error = String(err);
   }

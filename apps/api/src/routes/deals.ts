@@ -84,7 +84,7 @@ router.post('/:id/payment', async (req: Request, res: Response) => {
 
   const [deal] = await db.select().from(deals).where(eq(deals.id, req.params.id)).limit(1);
   if (!deal) return res.status(404).json({ error: 'Deal not found' });
-  if (deal.status !== 'signed') return res.status(409).json({ error: `Deal must be signed before payment (current: ${deal.status})` });
+  if (deal.status !== 'active' || deal.signatureStatus !== 'fully_executed') return res.status(409).json({ error: `Deal must be fully signed before payment (current status: ${deal.status}, signatureStatus: ${deal.signatureStatus})` });
 
   const [campaign] = await db.select({ brandId: campaigns.brandId }).from(campaigns).where(eq(campaigns.id, deal.campaignId)).limit(1);
   if (campaign?.brandId !== req.auth!.sub) return res.status(403).json({ error: 'Forbidden' });

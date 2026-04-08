@@ -160,8 +160,77 @@ async function runScheduledScrape(reason = 'interval'): Promise<void> {
   }
 }
 
+// Idempotent schema corrections — runs at startup and via POST /health/apply-corrections
+async function applySchemaCorrections(): Promise<{ applied: string[]; errors: string[] }> {
+  const applied: string[] = [];
+  const errors: string[] = [];
+
+  const stmts: Array<{ label: string; sql: string; params?: unknown[] }> = [
+    {
+      label: 'create subscription_tier enum',
+      sql: `DO $$ BEGIN CREATE TYPE "public"."subscription_tier" AS ENUM('starter','growth','scale'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+    },
+    { label: 'brands.stripe_customer_id', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS stripe_customer_id text` },
+    { label: 'brands.stripe_subscription_id', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS stripe_subscription_id text` },
+    { label: 'brands.subscription_tier', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS subscription_tier "subscription_tier"` },
+    { label: 'brands.subscription_status', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS subscription_status varchar(50)` },
+    { label: 'brands.partnership_limit', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS partnership_limit integer NOT NULL DEFAULT 0` },
+    { label: 'brands.email_verification_token', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS email_verification_token text` },
+    { label: 'brands.email_verification_token_expires_at', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS email_verification_token_expires_at timestamp` },
+    { label: 'brands.email_verified_at', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS email_verified_at timestamp` },
+    { label: 'brands.password_reset_token', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS password_reset_token text` },
+    { label: 'brands.password_reset_token_expires_at', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS password_reset_token_expires_at timestamp` },
+    { label: 'brands.tos_accepted_at', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS tos_accepted_at timestamp` },
+    { label: 'brands.tos_version', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS tos_version varchar(50)` },
+    { label: 'brands.brand_safety_categories', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS brand_safety_categories text[] NOT NULL DEFAULT '{}'` },
+    { label: 'brands.brand_safety_keywords', sql: `ALTER TABLE brands ADD COLUMN IF NOT EXISTS brand_safety_keywords text[] NOT NULL DEFAULT '{}'` },
+    { label: 'community_owners.email_verification_token', sql: `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS email_verification_token text` },
+    { label: 'community_owners.email_verification_token_expires_at', sql: `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS email_verification_token_expires_at timestamp` },
+    { label: 'community_owners.email_verified_at', sql: `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS email_verified_at timestamp` },
+    { label: 'community_owners.password_reset_token', sql: `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS password_reset_token text` },
+    { label: 'community_owners.password_reset_token_expires_at', sql: `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS password_reset_token_expires_at timestamp` },
+    { label: 'community_owners.tos_accepted_at', sql: `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS tos_accepted_at timestamp` },
+    { label: 'community_owners.tos_version', sql: `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS tos_version varchar(50)` },
+    { label: 'community_owners.wallet_balance_cents', sql: `ALTER TABLE community_owners ADD COLUMN IF NOT EXISTS wallet_balance_cents integer NOT NULL DEFAULT 0` },
+  ];
+
+  for (const stmt of stmts) {
+    try {
+      await dbPool.query(stmt.sql);
+      applied.push(stmt.label);
+    } catch (err) {
+      errors.push(`${stmt.label}: ${String(err)}`);
+    }
+  }
+  return { applied, errors };
+}
+
+// Admin-protected endpoint to manually trigger schema corrections without a redeploy
+app.post('/health/apply-corrections', async (req, res) => {
+  const adminKey = process.env.ADMIN_API_KEY;
+  if (!adminKey || req.headers['x-admin-key'] !== adminKey) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  try {
+    const result = await applySchemaCorrections();
+    return res.json(result);
+  } catch (err) {
+    return res.status(500).json({ error: String(err) });
+  }
+});
+
 app.listen(PORT, async () => {
   console.log(`Sphere API running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+
+  // Apply idempotent schema corrections at startup to fix any journal/DB drift
+  console.log('[startup] Applying schema corrections...');
+  const corrections = await applySchemaCorrections();
+  const failedCount = corrections.errors.length;
+  if (failedCount > 0) {
+    console.error('[startup] Schema corrections had errors:', corrections.errors);
+  } else {
+    console.log(`[startup] Schema corrections complete (${corrections.applied.length} statements).`);
+  }
 
   // Trigger an immediate scrape on startup if the database is sparse
   try {

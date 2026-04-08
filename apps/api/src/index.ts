@@ -5,7 +5,7 @@ import express from 'express';
 import { runScraper, getScraperStats } from './services/scraper';
 import cors from 'cors';
 import helmet from 'helmet';
-import { Pool } from 'pg';
+import { pool as dbPool } from './db';
 import brandAuthRoutes from './routes/brands.auth';
 import communityAuthRoutes from './routes/communities.auth';
 import campaignRoutes from './routes/campaigns';
@@ -22,7 +22,6 @@ import dealFeedbackRoutes from './routes/deal-feedback';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const dbPool = new Pool({ connectionString: process.env.DATABASE_URL });
 console.log(`[startup] PORT=${PORT} NODE_ENV=${process.env.NODE_ENV} DATABASE_URL=${process.env.DATABASE_URL ? 'set' : 'MISSING'}`);
 
 app.use(helmet());

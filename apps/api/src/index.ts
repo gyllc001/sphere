@@ -13,6 +13,7 @@ import metricsRoutes from './routes/metrics';
 import adminRoutes from './routes/admin';
 import messageRoutes from './routes/messages';
 import disputeRoutes from './routes/disputes';
+import dealFeedbackRoutes from './routes/deal-feedback';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -40,6 +41,7 @@ app.use('/api/metrics', metricsRoutes);
 app.use('/api/admin', express.text({ type: ['text/csv', 'text/plain'] }), adminRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/disputes', disputeRoutes);
+app.use('/api/deals/:dealId/feedback', dealFeedbackRoutes);
 
 // Global error handler — prevent unhandled async route errors from crashing the process
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

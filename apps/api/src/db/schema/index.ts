@@ -5,3 +5,4 @@ export * from './partnerships';
 export * from './applications';
 export * from './messages';
 export * from './disputes';
+export * from './scraped_communities';

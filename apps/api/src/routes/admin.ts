@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../db';
-import { communities, communityOwners } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { communities, communityOwners, scrapedCommunities } from '../db/schema';
+import { eq, and, ilike, gte, lte, sql as drizzleSql } from 'drizzle-orm';
 import { adminListDisputes, adminGetDispute, adminResolveDispute } from './disputes';
+import { runScraper, getScraperStats } from '../services/scraper';
 
 const router = Router();
 
@@ -177,5 +178,116 @@ router.post('/communities/bulk-import', async (req: Request, res: Response) => {
 router.get('/disputes', adminListDisputes);
 router.get('/disputes/:id', adminGetDispute);
 router.post('/disputes/:id/resolve', adminResolveDispute);
+
+// ── Scraped community database ─────────────────────────────────────────────────
+
+/**
+ * GET /api/admin/scraped-communities
+ * Browse the scraped community database with optional filters.
+ * Query params: platform, verificationStatus, niche, minMembers, maxMembers, q, limit, offset
+ */
+router.get('/scraped-communities', async (req: Request, res: Response) => {
+  const schema = z.object({
+    platform: z.string().optional(),
+    verificationStatus: z.enum(['unverified', 'pending', 'verified']).optional(),
+    niche: z.string().optional(),
+    minMembers: z.coerce.number().int().min(0).optional(),
+    maxMembers: z.coerce.number().int().min(0).optional(),
+    q: z.string().max(200).optional(),
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+    offset: z.coerce.number().int().min(0).default(0),
+  });
+
+  const parsed = schema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+  }
+
+  const { platform, verificationStatus, niche, minMembers, maxMembers, q, limit, offset } = parsed.data;
+
+  const conditions = [];
+  if (platform) conditions.push(eq(scrapedCommunities.platform, platform));
+  if (verificationStatus) conditions.push(eq(scrapedCommunities.verificationStatus, verificationStatus));
+  if (minMembers != null) conditions.push(gte(scrapedCommunities.memberCount, minMembers));
+  if (maxMembers != null) conditions.push(lte(scrapedCommunities.memberCount, maxMembers));
+  if (q) conditions.push(ilike(scrapedCommunities.name, `%${q}%`));
+  if (niche) {
+    conditions.push(drizzleSql`${scrapedCommunities.nicheTags} @> ARRAY[${niche}]::text[]`);
+  }
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [rows, [{ count }]] = await Promise.all([
+    db
+      .select()
+      .from(scrapedCommunities)
+      .where(where)
+      .orderBy(drizzleSql`${scrapedCommunities.memberCount} DESC NULLS LAST`)
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: drizzleSql<number>`COUNT(*)::int` })
+      .from(scrapedCommunities)
+      .where(where),
+  ]);
+
+  return res.json({ total: count, limit, offset, communities: rows });
+});
+
+/**
+ * GET /api/admin/scraped-communities/stats
+ * Summary stats: total count, breakdown by platform and verification status.
+ */
+router.get('/scraped-communities/stats', async (_req: Request, res: Response) => {
+  const stats = await getScraperStats();
+  return res.json(stats);
+});
+
+/**
+ * PATCH /api/admin/scraped-communities/:id
+ * Update verificationStatus (e.g. unverified -> pending -> verified).
+ */
+router.patch('/scraped-communities/:id', async (req: Request, res: Response) => {
+  const schema = z.object({
+    verificationStatus: z.enum(['unverified', 'pending', 'verified']).optional(),
+    adminContactEmail: z.string().email().optional().nullable(),
+    adminContactName: z.string().max(255).optional().nullable(),
+  });
+
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+  }
+
+  const updates: Record<string, unknown> = { ...parsed.data, updatedAt: new Date() };
+  // Remove undefined values
+  for (const k of Object.keys(updates)) {
+    if (updates[k] === undefined) delete updates[k];
+  }
+
+  const [updated] = await db
+    .update(scrapedCommunities)
+    .set(updates)
+    .where(eq(scrapedCommunities.id, req.params.id))
+    .returning();
+
+  if (!updated) return res.status(404).json({ error: 'Not found' });
+  return res.json(updated);
+});
+
+/**
+ * POST /api/admin/scraper/run
+ * Trigger a scraper run. Returns summary of results.
+ * This is an async operation; for large runs, consider a background job.
+ */
+router.post('/scraper/run', async (_req: Request, res: Response) => {
+  try {
+    const results = await runScraper();
+    const total = results.reduce((sum, r) => sum + r.inserted, 0);
+    return res.json({ message: `Scraper completed. ${total} new communities inserted.`, results });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;

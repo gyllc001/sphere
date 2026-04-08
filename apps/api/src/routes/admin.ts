@@ -48,7 +48,7 @@ function toSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-function parseCsv(text: string): Record<string, string>[] {
+function parseCsv(text: string): Record<string, unknown>[] {
   const lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
   const headers = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));

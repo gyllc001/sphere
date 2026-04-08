@@ -86,6 +86,15 @@ export default function AdminCommunitiesPage() {
     if (stored) { setAdminKey(stored); setAuthed(true); }
   }, []);
 
+  // Sync admin key to cookie so middleware can enforce server-side access control
+  function setAdminCookie(key: string) {
+    document.cookie = `sphere_admin_key=${encodeURIComponent(key)}; path=/; SameSite=Strict`;
+  }
+
+  function clearAdminCookie() {
+    document.cookie = 'sphere_admin_key=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+  }
+
   const load = useCallback(async (key: string, f: ScrapedCommunitiesFilters, p: number) => {
     setLoading(true);
     setError('');
@@ -118,6 +127,7 @@ export default function AdminCommunitiesPage() {
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     sessionStorage.setItem('sphere_admin_key', keyInput);
+    setAdminCookie(keyInput);
     setAdminKey(keyInput);
     setAuthed(true);
   }
@@ -207,7 +217,7 @@ export default function AdminCommunitiesPage() {
               {scraperLoading ? 'Running…' : 'Run Scraper'}
             </button>
             <button
-              onClick={() => { setAuthed(false); sessionStorage.removeItem('sphere_admin_key'); }}
+              onClick={() => { setAuthed(false); sessionStorage.removeItem('sphere_admin_key'); clearAdminCookie(); }}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
               Sign out

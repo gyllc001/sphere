@@ -13,11 +13,16 @@ import {
 
 const router = Router();
 
+const CURRENT_TOS_VERSION = '2026-04-08';
+
 const RegisterSchema = z.object({
   name: z.string().min(1).max(255),
   email: z.string().email(),
   password: z.string().min(8),
   bio: z.string().optional(),
+  tosAccepted: z.boolean().refine((v) => v === true, {
+    message: 'You must accept the Terms of Service to create an account',
+  }),
 });
 
 const LoginSchema = z.object({
@@ -48,6 +53,8 @@ router.post('/register', async (req: Request, res: Response) => {
     bio,
     emailVerificationToken: verificationToken,
     emailVerificationTokenExpiresAt: tokenExpiry,
+    tosAcceptedAt: new Date(),
+    tosVersion: CURRENT_TOS_VERSION,
   }).returning({ id: communityOwners.id, name: communityOwners.name, email: communityOwners.email });
 
   // Send verification email (non-blocking)

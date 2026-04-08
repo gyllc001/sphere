@@ -14,6 +14,8 @@ import { trackServerEvent } from '../services/analytics';
 
 const router = Router();
 
+const CURRENT_TOS_VERSION = '2026-04-08';
+
 const RegisterSchema = z.object({
   name: z.string().min(1).max(255),
   email: z.string().email(),
@@ -21,6 +23,9 @@ const RegisterSchema = z.object({
   website: z.string().url().optional(),
   industry: z.string().max(100).optional(),
   description: z.string().optional(),
+  tosAccepted: z.boolean().refine((v) => v === true, {
+    message: 'You must accept the Terms of Service to create an account',
+  }),
 });
 
 const LoginSchema = z.object({
@@ -60,6 +65,8 @@ router.post('/register', async (req: Request, res: Response) => {
     description,
     emailVerificationToken: verificationToken,
     emailVerificationTokenExpiresAt: tokenExpiry,
+    tosAcceptedAt: new Date(),
+    tosVersion: CURRENT_TOS_VERSION,
   }).returning({ id: brands.id, name: brands.name, email: brands.email, slug: brands.slug });
 
   // Send verification email (non-blocking — don't fail registration if email fails)

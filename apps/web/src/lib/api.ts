@@ -53,6 +53,7 @@ export const brandAuth = {
     website?: string;
     industry?: string;
     description?: string;
+    tosAccepted: boolean;
   }) =>
     request<{ token: string; brand: Brand }>('/api/brands/auth/register', {
       method: 'POST',
@@ -120,7 +121,7 @@ export interface CommunityOwner {
 }
 
 export const communityAuth = {
-  register: (data: { name: string; email: string; password: string; bio?: string }) =>
+  register: (data: { name: string; email: string; password: string; bio?: string; tosAccepted: boolean }) =>
     request<{ token: string; owner: CommunityOwner }>('/api/communities/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),

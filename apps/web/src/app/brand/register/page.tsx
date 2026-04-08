@@ -6,6 +6,15 @@ import Link from 'next/link';
 import { brandAuth, setToken } from '@/lib/api';
 import { track, identifyUser } from '@/lib/analytics';
 
+const TOS_VERSION = '2026-04-08';
+
+const TOS_SUMMARY = [
+  'Brand subscriptions: Starter $250/mo, Growth $450/mo, Scale $1,000/mo',
+  'Creator payout processing fee: 10–15% deducted before disbursement',
+  'Wallet dispensement fee: 2.5% on all wallet transactions',
+  'Off-platform contact policy: 12-month circumvention prohibition — all communication must happen on Sphere',
+];
+
 export default function BrandRegister() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -19,6 +28,7 @@ export default function BrandRegister() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [tosExpanded, setTosExpanded] = useState(false);
 
   function update(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -37,6 +47,7 @@ export default function BrandRegister() {
         ...(form.website && { website: form.website }),
         ...(form.industry && { industry: form.industry }),
         ...(form.description && { description: form.description }),
+        tosAccepted: true,
       };
       const { token, brand } = await brandAuth.register(payload);
       setToken('brand', token);
@@ -121,6 +132,26 @@ export default function BrandRegister() {
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
+          {/* ToS display */}
+          <div className="border border-gray-200 rounded-md overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setTosExpanded((v) => !v)}
+              className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              <span className="font-medium">Sphere Terms of Service (v{TOS_VERSION})</span>
+              <span className="text-gray-400">{tosExpanded ? '▲ Hide' : '▼ View'}</span>
+            </button>
+            {tosExpanded && (
+              <div className="px-3 py-3 text-xs text-gray-600 space-y-1.5 max-h-40 overflow-y-auto border-t border-gray-200">
+                <p className="font-medium text-gray-700">Key terms:</p>
+                {TOS_SUMMARY.map((item, i) => (
+                  <p key={i}>• {item}</p>
+                ))}
+                <p className="text-gray-400 mt-2">Full monetization terms including subscription tiers, creator processing fees (10–15%), wallet dispensement fees (2.5%), off-platform contact policy, taxes, disputes, and modifications. By checking below you agree to all terms in full.</p>
+              </div>
+            )}
+          </div>
           <div className="flex items-start gap-2">
             <input
               id="terms"
@@ -131,10 +162,7 @@ export default function BrandRegister() {
               className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
             />
             <label htmlFor="terms" className="text-sm text-gray-600">
-              I agree to the{' '}
-              <Link href="/terms" className="text-indigo-600 hover:underline">Terms of Service</Link>
-              {' '}and{' '}
-              <Link href="/privacy" className="text-indigo-600 hover:underline">Privacy Policy</Link>
+              I have read and accept the Sphere Terms of Service (v{TOS_VERSION}), including the monetization model, processing fees, and off-platform contact policy.
             </label>
           </div>
           <button

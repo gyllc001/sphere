@@ -129,6 +129,11 @@ router.post('/:id/payout', async (req: Request, res: Response) => {
   const [campaign] = await db.select({ brandId: campaigns.brandId }).from(campaigns).where(eq(campaigns.id, deal.campaignId)).limit(1);
   if (campaign?.brandId !== req.auth!.sub) return res.status(403).json({ error: 'Forbidden' });
 
+  // Apply creator processing fee (10%) before payout
+  const CREATOR_PROCESSING_FEE_RATE = 0.10;
+  const platformFeeCents = Math.round(deal.agreedRateCents * CREATOR_PROCESSING_FEE_RATE);
+  const creatorPayoutCents = deal.agreedRateCents - platformFeeCents;
+
   // STUB: In production, execute Stripe Connect transfer to community owner's account
   const stubTransferId = `tr_stub_${Date.now()}`;
 
@@ -145,12 +150,15 @@ router.post('/:id/payout', async (req: Request, res: Response) => {
     deal: updated,
     payout: {
       transferId: stubTransferId,
-      amount: deal.agreedRateCents,
+      grossAmountCents: deal.agreedRateCents,
+      platformFeeCents,
+      platformFeeRate: CREATOR_PROCESSING_FEE_RATE,
+      creatorPayoutCents,
       currency: 'usd',
       status: 'released',
       // STUB: real Stripe Connect transfer fields would appear here
       _stub: true,
-      _message: 'Payout released. In production, funds transferred via Stripe Connect to community owner.',
+      _message: `Payout released. Creator receives $${(creatorPayoutCents / 100).toFixed(2)} after 10% platform fee. In production, funds transferred via Stripe Connect.`,
     },
   });
 });

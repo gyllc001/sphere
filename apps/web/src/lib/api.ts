@@ -410,6 +410,31 @@ export const communityProfileApi = {
     request<CommunityProfile>(`/api/campaigns/communities/${communityId}`, { token }),
 };
 
+// ── Billing ───────────────────────────────────────────────────────────────────
+
+export interface SubscriptionInfo {
+  tier: 'starter' | 'growth' | 'scale' | null;
+  status: string | null;
+  partnershipLimit: number;
+  tierDetails: { name: string; priceMonthCents: number; partnershipLimit: number } | null;
+  tiers: Record<string, { name: string; priceMonthCents: number; partnershipLimit: number }>;
+}
+
+export const billingApi = {
+  getSubscription: (token: string) =>
+    request<SubscriptionInfo>('/api/billing/subscription', { token }),
+
+  createCheckoutSession: (token: string, tier: 'starter' | 'growth' | 'scale') =>
+    request<{ url: string }>('/api/billing/checkout', {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ tier }),
+    }),
+
+  createPortalSession: (token: string) =>
+    request<{ url: string }>('/api/billing/portal', { method: 'POST', token }),
+};
+
 // ── Admin ─────────────────────────────────────────────────────────────────────
 
 export interface BulkImportRow {

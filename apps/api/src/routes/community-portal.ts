@@ -227,6 +227,50 @@ router.post('/opportunities/:requestId/respond', async (req: Request, res: Respo
   const data = parsed.data;
 
   if (data.action === 'accept') {
+    // Check brand's partnership tier limit before creating a deal
+    const campaign = await db
+      .select({ brandId: campaigns.brandId })
+      .from(campaigns)
+      .where(eq(campaigns.id, request.partnership_requests.campaignId))
+      .limit(1);
+    const brandId = campaign[0]?.brandId;
+
+    if (brandId) {
+      const [brandRow] = await db
+        .select({ partnershipLimit: brands.partnershipLimit })
+        .from(brands)
+        .where(eq(brands.id, brandId))
+        .limit(1);
+
+      const limit = brandRow?.partnershipLimit ?? 0;
+      if (limit > 0) {
+        const brandCampaigns = await db
+          .select({ id: campaigns.id })
+          .from(campaigns)
+          .where(eq(campaigns.brandId, brandId));
+        const brandCampaignIds = brandCampaigns.map((c) => c.id);
+
+        if (brandCampaignIds.length > 0) {
+          const { count } = await import('drizzle-orm');
+          const [activeCount] = await db
+            .select({ cnt: count() })
+            .from(deals)
+            .where(
+              and(
+                inArray(deals.campaignId, brandCampaignIds),
+                inArray(deals.status, ['negotiating', 'agreed', 'contract_sent', 'signed', 'active'])
+              )
+            );
+          if (Number(activeCount?.cnt ?? 0) >= limit) {
+            return res.status(403).json({
+              error: `The brand's partnership limit has been reached for their subscription tier (${limit} active partnerships).`,
+              partnershipLimit: limit,
+            });
+          }
+        }
+      }
+    }
+
     // Update request to accepted and create a deal
     await db
       .update(partnershipRequests)

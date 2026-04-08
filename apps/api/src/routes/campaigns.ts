@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { eq, and, count, sql } from 'drizzle-orm';
+import { eq, and, count, sql, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import { campaigns, partnershipRequests, deals, communities, communityOwners, campaignApplications } from '../db/schema';
+import { campaigns, partnershipRequests, deals, communities, communityOwners, campaignApplications, brands } from '../db/schema';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { runMatching } from '../services/matching';
 
@@ -282,7 +282,41 @@ router.patch('/:id/applications/:appId', async (req: Request, res: Response) => 
     return res.json(updated);
   }
 
-  // Accept: create a deal and link it
+  // Accept: check brand partnership tier limit before creating a deal
+  const [brandRow] = await db
+    .select({ partnershipLimit: brands.partnershipLimit })
+    .from(brands)
+    .where(eq(brands.id, req.auth!.sub))
+    .limit(1);
+
+  const limit = brandRow?.partnershipLimit ?? 0;
+  if (limit > 0) {
+    // Count active deals (not cancelled or completed) linked to this brand's campaigns
+    const brandCampaigns = await db
+      .select({ id: campaigns.id })
+      .from(campaigns)
+      .where(eq(campaigns.brandId, req.auth!.sub));
+    const brandCampaignIds = brandCampaigns.map((c) => c.id);
+
+    if (brandCampaignIds.length > 0) {
+      const [activeCount] = await db
+        .select({ cnt: count() })
+        .from(deals)
+        .where(
+          and(
+            inArray(deals.campaignId, brandCampaignIds),
+            inArray(deals.status, ['negotiating', 'agreed', 'contract_sent', 'signed', 'active'])
+          )
+        );
+      if (Number(activeCount?.cnt ?? 0) >= limit) {
+        return res.status(403).json({
+          error: `Partnership limit reached for your subscription tier (${limit} active partnerships). Upgrade your plan to add more.`,
+          partnershipLimit: limit,
+        });
+      }
+    }
+  }
+
   const rateCents = agreedRateCents ?? application.proposedRateCents ?? 0;
 
   // Create a partnership request (so deal model links back correctly)

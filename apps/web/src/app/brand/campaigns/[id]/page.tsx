@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { campaigns, getToken, type Campaign, type Partnership } from '@/lib/api';
+import { campaigns, getToken, type Campaign, type Partnership, type InboundApplication } from '@/lib/api';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -28,22 +28,46 @@ export default function CampaignDetail() {
 
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [partnerships, setPartnerships] = useState<Partnership[]>([]);
+  const [applications, setApplications] = useState<InboundApplication[]>([]);
   const [error, setError] = useState('');
+  const [deciding, setDeciding] = useState<string | null>(null);
+  const [decideError, setDecideError] = useState('');
 
-  useEffect(() => {
+  function load() {
     const token = getToken('brand');
     if (!token) {
       router.replace('/brand/login');
       return;
     }
-
-    Promise.all([campaigns.get(token, id), campaigns.partnerships(token, id)])
-      .then(([camp, parts]) => {
+    Promise.all([
+      campaigns.get(token, id),
+      campaigns.partnerships(token, id),
+      campaigns.listApplications(token, id),
+    ])
+      .then(([camp, parts, apps]) => {
         setCampaign(camp);
         setPartnerships(parts);
+        setApplications(apps);
       })
       .catch((err) => setError(err.message));
-  }, [id, router]);
+  }
+
+  useEffect(() => { load(); }, [id, router]);
+
+  async function decide(appId: string, decision: 'accept' | 'decline') {
+    const token = getToken('brand');
+    if (!token) return;
+    setDeciding(appId);
+    setDecideError('');
+    try {
+      await campaigns.decideApplication(token, id, appId, decision);
+      load();
+    } catch (err: any) {
+      setDecideError(err.message);
+    } finally {
+      setDeciding(null);
+    }
+  }
 
   if (!campaign) {
     return (
@@ -79,6 +103,77 @@ export default function CampaignDetail() {
             {campaign.budgetCents && <span>Budget: <strong>${(campaign.budgetCents / 100).toLocaleString()}</strong></span>}
             {campaign.targetAudience && <span>Audience: <strong>{campaign.targetAudience}</strong></span>}
           </div>
+        </div>
+
+        {/* Community-owner applications */}
+        <div>
+          <h2 className="font-semibold mb-3">
+            Community Applications
+            {applications.length > 0 && (
+              <span className="ml-2 text-sm font-normal text-gray-400">({applications.length})</span>
+            )}
+          </h2>
+          {decideError && (
+            <div className="mb-3 p-2 bg-red-50 border border-red-200 text-red-700 rounded text-sm">{decideError}</div>
+          )}
+          {applications.length === 0 ? (
+            <div className="bg-white rounded-lg border p-6 text-center text-gray-400 text-sm mb-6">
+              No community applications yet. Make sure your campaign is active so community owners can apply.
+            </div>
+          ) : (
+            <div className="space-y-3 mb-6">
+              {applications.map((a) => (
+                <div key={a.applicationId} className="bg-white rounded-lg border p-5">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="font-medium">{a.communityName}</p>
+                      <p className="text-sm text-gray-500">
+                        {a.communityPlatform} · {a.communityMemberCount?.toLocaleString()} members
+                        {a.communityNiche && ` · ${a.communityNiche}`}
+                        {' · '}Owner: {a.ownerName}
+                      </p>
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ml-4 ${STATUS_COLORS[a.status] || 'bg-gray-100 text-gray-600'}`}>
+                      {a.status}
+                    </span>
+                  </div>
+
+                  <div className="text-sm text-gray-600 bg-gray-50 rounded p-3 mb-3 italic">
+                    "{a.pitch}"
+                  </div>
+
+                  <div className="flex gap-4 text-xs text-gray-400 mb-3">
+                    {a.proposedRateCents != null && (
+                      <span>Proposed rate: <strong>${(a.proposedRateCents / 100).toLocaleString()}</strong></span>
+                    )}
+                    <span>Applied: {new Date(a.createdAt).toLocaleDateString()}</span>
+                    {a.dealId && (
+                      <Link href={`/deals/${a.dealId}`} className="text-blue-600 hover:underline">View deal →</Link>
+                    )}
+                  </div>
+
+                  {a.status === 'pending' && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => decide(a.applicationId, 'accept')}
+                        disabled={deciding === a.applicationId}
+                        className="bg-green-600 text-white text-sm px-4 py-1.5 rounded hover:bg-green-700 disabled:opacity-50"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => decide(a.applicationId, 'decline')}
+                        disabled={deciding === a.applicationId}
+                        className="border border-gray-300 text-gray-600 text-sm px-4 py-1.5 rounded hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Matched communities / partnerships */}

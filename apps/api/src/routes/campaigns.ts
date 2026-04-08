@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import { campaigns, partnershipRequests, deals, communities, communityOwners } from '../db/schema';
+import { campaigns, partnershipRequests, deals, communities, communityOwners, campaignApplications } from '../db/schema';
 import { requireAuth, requireRole } from '../middleware/auth';
 
 const router = Router();
@@ -146,6 +146,124 @@ router.get('/:id/partnerships', async (req: Request, res: Response) => {
   }));
 
   return res.json(enriched);
+});
+
+// GET /api/campaigns/:id/applications — view community-owner applications for a campaign
+router.get('/:id/applications', async (req: Request, res: Response) => {
+  const [campaign] = await db
+    .select({ id: campaigns.id })
+    .from(campaigns)
+    .where(and(eq(campaigns.id, req.params.id), eq(campaigns.brandId, req.auth!.sub)))
+    .limit(1);
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+  const results = await db
+    .select({
+      applicationId: campaignApplications.id,
+      status: campaignApplications.status,
+      pitch: campaignApplications.pitch,
+      proposedRateCents: campaignApplications.proposedRateCents,
+      brandNote: campaignApplications.brandNote,
+      dealId: campaignApplications.dealId,
+      createdAt: campaignApplications.createdAt,
+      communityId: communities.id,
+      communityName: communities.name,
+      communityPlatform: communities.platform,
+      communityMemberCount: communities.memberCount,
+      communityNiche: communities.niche,
+      communityDescription: communities.description,
+      ownerName: communityOwners.name,
+    })
+    .from(campaignApplications)
+    .innerJoin(communities, eq(campaignApplications.communityId, communities.id))
+    .innerJoin(communityOwners, eq(communities.ownerId, communityOwners.id))
+    .where(eq(campaignApplications.campaignId, req.params.id))
+    .orderBy(campaignApplications.createdAt);
+
+  return res.json(results);
+});
+
+const ApplicationDecisionSchema = z.object({
+  decision: z.enum(['accept', 'decline']),
+  note: z.string().optional(),
+  agreedRateCents: z.number().int().positive().optional(),
+});
+
+// PATCH /api/campaigns/:id/applications/:appId — accept or decline an application
+router.patch('/:id/applications/:appId', async (req: Request, res: Response) => {
+  const parsed = ApplicationDecisionSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+  }
+
+  // Verify campaign ownership
+  const [campaign] = await db
+    .select({ id: campaigns.id })
+    .from(campaigns)
+    .where(and(eq(campaigns.id, req.params.id), eq(campaigns.brandId, req.auth!.sub)))
+    .limit(1);
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+  const [application] = await db
+    .select()
+    .from(campaignApplications)
+    .where(
+      and(
+        eq(campaignApplications.id, req.params.appId),
+        eq(campaignApplications.campaignId, req.params.id)
+      )
+    )
+    .limit(1);
+  if (!application) return res.status(404).json({ error: 'Application not found' });
+  if (application.status !== 'pending') {
+    return res.status(409).json({ error: `Application is already ${application.status}` });
+  }
+
+  const { decision, note, agreedRateCents } = parsed.data;
+
+  if (decision === 'decline') {
+    const [updated] = await db
+      .update(campaignApplications)
+      .set({ status: 'declined', brandNote: note, updatedAt: new Date() })
+      .where(eq(campaignApplications.id, req.params.appId))
+      .returning();
+    return res.json(updated);
+  }
+
+  // Accept: create a deal and link it
+  const rateCents = agreedRateCents ?? application.proposedRateCents ?? 0;
+
+  // Create a partnership request (so deal model links back correctly)
+  const [partnershipReq] = await db
+    .insert(partnershipRequests)
+    .values({
+      campaignId: req.params.id,
+      communityId: application.communityId,
+      proposedRateCents: rateCents,
+      message: application.pitch,
+      status: 'accepted',
+      initiatedByAi: 0,
+    })
+    .returning();
+
+  const [deal] = await db
+    .insert(deals)
+    .values({
+      partnershipRequestId: partnershipReq.id,
+      campaignId: req.params.id,
+      communityId: application.communityId,
+      agreedRateCents: rateCents,
+      status: 'agreed',
+    })
+    .returning();
+
+  const [updated] = await db
+    .update(campaignApplications)
+    .set({ status: 'accepted', brandNote: note, dealId: deal.id, updatedAt: new Date() })
+    .where(eq(campaignApplications.id, req.params.appId))
+    .returning();
+
+  return res.json({ application: updated, deal });
 });
 
 // GET /api/campaigns/dashboard — aggregated dashboard view

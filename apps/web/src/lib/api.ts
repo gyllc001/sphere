@@ -149,6 +149,22 @@ export const campaigns = {
 
   partnerships: (token: string, campaignId: string) =>
     request<Partnership[]>(`/api/campaigns/${campaignId}/partnerships`, { token }),
+
+  listApplications: (token: string, campaignId: string) =>
+    request<InboundApplication[]>(`/api/campaigns/${campaignId}/applications`, { token }),
+
+  decideApplication: (
+    token: string,
+    campaignId: string,
+    appId: string,
+    decision: 'accept' | 'decline',
+    extra?: { note?: string; agreedRateCents?: number }
+  ) =>
+    request(`/api/campaigns/${campaignId}/applications/${appId}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify({ decision, ...extra }),
+    }),
 };
 
 // ── Community Portal ──────────────────────────────────────────────────────────
@@ -191,6 +207,61 @@ export interface Opportunity {
   brandName: string;
 }
 
+export interface BrowseCampaign {
+  id: string;
+  title: string;
+  brief: string;
+  objectives?: string;
+  targetAudience?: string;
+  niche?: string;
+  minCommunitySize?: number;
+  budgetCents?: number;
+  status: string;
+  startDate?: string;
+  endDate?: string;
+  createdAt: string;
+  brandName: string;
+  brandId: string;
+  myApplication: { status: string; applicationId: string } | null;
+}
+
+export interface CampaignApplication {
+  applicationId: string;
+  status: string;
+  pitch: string;
+  proposedRateCents?: number;
+  brandNote?: string;
+  dealId?: string;
+  createdAt: string;
+  updatedAt: string;
+  communityId: string;
+  communityName: string;
+  campaignId: string;
+  campaignTitle: string;
+  campaignNiche?: string;
+  campaignBudgetCents?: number;
+  campaignStatus: string;
+  brandId: string;
+  brandName: string;
+}
+
+export interface InboundApplication {
+  applicationId: string;
+  status: string;
+  pitch: string;
+  proposedRateCents?: number;
+  brandNote?: string;
+  dealId?: string;
+  createdAt: string;
+  communityId: string;
+  communityName: string;
+  communityPlatform: string;
+  communityMemberCount: number;
+  communityNiche?: string;
+  communityDescription?: string;
+  ownerName: string;
+}
+
 export const communityPortal = {
   createCommunity: (token: string, data: Partial<Community>) =>
     request<Community>('/api/owner/communities', { method: 'POST', token, body: JSON.stringify(data) }),
@@ -212,6 +283,25 @@ export const communityPortal = {
       token,
       body: JSON.stringify({ action, ...extra }),
     }),
+
+  browseCampaigns: (token: string, filters?: { niche?: string; minBudget?: number; maxBudget?: number }) => {
+    const params = new URLSearchParams();
+    if (filters?.niche) params.set('niche', filters.niche);
+    if (filters?.minBudget) params.set('minBudget', String(filters.minBudget));
+    if (filters?.maxBudget) params.set('maxBudget', String(filters.maxBudget));
+    const qs = params.toString();
+    return request<BrowseCampaign[]>(`/api/owner/browse-campaigns${qs ? `?${qs}` : ''}`, { token });
+  },
+
+  apply: (token: string, campaignId: string, data: { communityId: string; pitch: string; proposedRateCents?: number }) =>
+    request<CampaignApplication>(`/api/owner/campaigns/${campaignId}/apply`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify(data),
+    }),
+
+  myApplications: (token: string) =>
+    request<CampaignApplication[]>('/api/owner/my-applications', { token }),
 };
 
 // ── Admin ─────────────────────────────────────────────────────────────────────

@@ -52,7 +52,9 @@ export default function CommunitiesPage() {
           <Link href="/" className="text-lg font-bold text-gray-900">Sphere</Link>
           <nav className="flex gap-4 text-sm">
             <Link href="/community/communities" className="font-medium text-green-600">My Communities</Link>
-            <Link href="/community/opportunities" className="text-gray-600 hover:text-gray-900">Opportunities</Link>
+            <Link href="/community/campaigns" className="text-gray-600 hover:text-gray-900">Browse Campaigns</Link>
+            <Link href="/community/opportunities" className="text-gray-600 hover:text-gray-900">Inbound Offers</Link>
+            <Link href="/community/my-applications" className="text-gray-600 hover:text-gray-900">My Applications</Link>
           </nav>
         </div>
         <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-gray-800">

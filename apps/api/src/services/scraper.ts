@@ -12,7 +12,7 @@
 import { db } from '../db';
 import { scrapedCommunities } from '../db/schema';
 import type { NewScrapedCommunity } from '../db/schema';
-import { sql } from 'drizzle-orm';
+import { sql, eq, and, isNull } from 'drizzle-orm';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -147,16 +147,16 @@ async function scrapeReddit(targetCount = 500): Promise<NewScrapedCommunity[]> {
 // Falls back to a curated seed list when the directory is unreachable.
 
 const TELEGRAM_SEED_CHANNELS: NewScrapedCommunity[] = [
-  { name: 'TechCrunch', platform: 'telegram', handle: 'techcrunch', url: 'https://t.me/techcrunch', memberCount: null, description: 'TechCrunch news on Telegram', primaryLanguage: 'en', location: null, nicheTags: ['technology'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'The Hacker News', platform: 'telegram', handle: 'thehackernews', url: 'https://t.me/thehackernews', memberCount: null, description: 'Cyber security news', primaryLanguage: 'en', location: null, nicheTags: ['technology'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'CryptoPanic', platform: 'telegram', handle: 'cryptopanic', url: 'https://t.me/cryptopanic', memberCount: null, description: 'Crypto news aggregator', primaryLanguage: 'en', location: null, nicheTags: ['finance'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Dev Tips', platform: 'telegram', handle: 'devtips_channel', url: 'https://t.me/devtips_channel', memberCount: null, description: 'Daily developer tips', primaryLanguage: 'en', location: null, nicheTags: ['technology', 'education'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Fitness Motivation', platform: 'telegram', handle: 'fitnessmotivation', url: 'https://t.me/fitnessmotivation', memberCount: null, description: 'Daily fitness motivation', primaryLanguage: 'en', location: null, nicheTags: ['fitness'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Travel Destinations', platform: 'telegram', handle: 'traveldestinations', url: 'https://t.me/traveldestinations', memberCount: null, description: 'Inspiring travel content', primaryLanguage: 'en', location: null, nicheTags: ['travel'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Foodie World', platform: 'telegram', handle: 'foodieworld', url: 'https://t.me/foodieworld', memberCount: null, description: 'Food recipes and inspiration', primaryLanguage: 'en', location: null, nicheTags: ['food'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Daily Finance Tips', platform: 'telegram', handle: 'dailyfinancetips', url: 'https://t.me/dailyfinancetips', memberCount: null, description: 'Personal finance advice', primaryLanguage: 'en', location: null, nicheTags: ['finance'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Gaming Zone', platform: 'telegram', handle: 'gamingzone', url: 'https://t.me/gamingzone', memberCount: null, description: 'Gaming news and updates', primaryLanguage: 'en', location: null, nicheTags: ['gaming'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Fashion World', platform: 'telegram', handle: 'fashionworld', url: 'https://t.me/fashionworld', memberCount: null, description: 'Fashion trends and style', primaryLanguage: 'en', location: null, nicheTags: ['fashion'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'TechCrunch', platform: 'telegram', handle: 'techcrunch', url: 'https://t.me/techcrunch', memberCount: null, description: 'TechCrunch news on Telegram', primaryLanguage: 'en', location: null, nicheTags: ['technology'], adminContactEmail: null, adminContactName: '@techcrunch', adminContactHandle: '@techcrunch', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'The Hacker News', platform: 'telegram', handle: 'thehackernews', url: 'https://t.me/thehackernews', memberCount: null, description: 'Cyber security news', primaryLanguage: 'en', location: null, nicheTags: ['technology'], adminContactEmail: null, adminContactName: '@thehackernews', adminContactHandle: '@thehackernews', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'CryptoPanic', platform: 'telegram', handle: 'cryptopanic', url: 'https://t.me/cryptopanic', memberCount: null, description: 'Crypto news aggregator', primaryLanguage: 'en', location: null, nicheTags: ['finance'], adminContactEmail: null, adminContactName: '@cryptopanic', adminContactHandle: '@cryptopanic', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Dev Tips', platform: 'telegram', handle: 'devtips_channel', url: 'https://t.me/devtips_channel', memberCount: null, description: 'Daily developer tips', primaryLanguage: 'en', location: null, nicheTags: ['technology', 'education'], adminContactEmail: null, adminContactName: '@devtips_channel', adminContactHandle: '@devtips_channel', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Fitness Motivation', platform: 'telegram', handle: 'fitnessmotivation', url: 'https://t.me/fitnessmotivation', memberCount: null, description: 'Daily fitness motivation', primaryLanguage: 'en', location: null, nicheTags: ['fitness'], adminContactEmail: null, adminContactName: '@fitnessmotivation', adminContactHandle: '@fitnessmotivation', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Travel Destinations', platform: 'telegram', handle: 'traveldestinations', url: 'https://t.me/traveldestinations', memberCount: null, description: 'Inspiring travel content', primaryLanguage: 'en', location: null, nicheTags: ['travel'], adminContactEmail: null, adminContactName: '@traveldestinations', adminContactHandle: '@traveldestinations', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Foodie World', platform: 'telegram', handle: 'foodieworld', url: 'https://t.me/foodieworld', memberCount: null, description: 'Food recipes and inspiration', primaryLanguage: 'en', location: null, nicheTags: ['food'], adminContactEmail: null, adminContactName: '@foodieworld', adminContactHandle: '@foodieworld', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Daily Finance Tips', platform: 'telegram', handle: 'dailyfinancetips', url: 'https://t.me/dailyfinancetips', memberCount: null, description: 'Personal finance advice', primaryLanguage: 'en', location: null, nicheTags: ['finance'], adminContactEmail: null, adminContactName: '@dailyfinancetips', adminContactHandle: '@dailyfinancetips', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Gaming Zone', platform: 'telegram', handle: 'gamingzone', url: 'https://t.me/gamingzone', memberCount: null, description: 'Gaming news and updates', primaryLanguage: 'en', location: null, nicheTags: ['gaming'], adminContactEmail: null, adminContactName: '@gamingzone', adminContactHandle: '@gamingzone', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Fashion World', platform: 'telegram', handle: 'fashionworld', url: 'https://t.me/fashionworld', memberCount: null, description: 'Fashion trends and style', primaryLanguage: 'en', location: null, nicheTags: ['fashion'], adminContactEmail: null, adminContactName: '@fashionworld', adminContactHandle: '@fashionworld', rawMetadata: null, verificationStatus: 'unverified' },
 ];
 
 async function scrapeTelegram(): Promise<NewScrapedCommunity[]> {
@@ -169,16 +169,16 @@ async function scrapeTelegram(): Promise<NewScrapedCommunity[]> {
 // We use disboard.org's public listing pages as a data source.
 
 const DISBOARD_SEED: NewScrapedCommunity[] = [
-  { name: 'Programming Hub', platform: 'discord', handle: null, url: 'https://disboard.org/server/681866536555462671', memberCount: 12000, description: 'A place for programmers of all levels', primaryLanguage: 'en', location: null, nicheTags: ['technology', 'education'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Fitness & Health Community', platform: 'discord', handle: null, url: 'https://disboard.org/server/fitness-health', memberCount: 8500, description: 'Health, fitness tips, and motivation', primaryLanguage: 'en', location: null, nicheTags: ['fitness', 'health'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Investors Hub', platform: 'discord', handle: null, url: 'https://disboard.org/server/investors-hub', memberCount: 15000, description: 'Stock market, crypto, and personal finance', primaryLanguage: 'en', location: null, nicheTags: ['finance'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'The Gaming Lounge', platform: 'discord', handle: null, url: 'https://disboard.org/server/gaming-lounge', memberCount: 25000, description: 'Gaming community for all platforms', primaryLanguage: 'en', location: null, nicheTags: ['gaming'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Travel Explorers', platform: 'discord', handle: null, url: 'https://disboard.org/server/travel-explorers', memberCount: 5000, description: 'Travel tips, destinations, and stories', primaryLanguage: 'en', location: null, nicheTags: ['travel'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Food Lovers', platform: 'discord', handle: null, url: 'https://disboard.org/server/food-lovers', memberCount: 7500, description: 'Recipes, cooking tips, and food photography', primaryLanguage: 'en', location: null, nicheTags: ['food'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Fashion Forward', platform: 'discord', handle: null, url: 'https://disboard.org/server/fashion-forward', memberCount: 4200, description: 'Fashion trends and style advice', primaryLanguage: 'en', location: null, nicheTags: ['fashion'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Parents Connect', platform: 'discord', handle: null, url: 'https://disboard.org/server/parents-connect', memberCount: 3800, description: 'Parenting tips and family support', primaryLanguage: 'en', location: null, nicheTags: ['parenting'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Study Together', platform: 'discord', handle: null, url: 'https://disboard.org/server/study-together', memberCount: 18000, description: 'Study accountability and education resources', primaryLanguage: 'en', location: null, nicheTags: ['education'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
-  { name: 'Entertainment Hub', platform: 'discord', handle: null, url: 'https://disboard.org/server/entertainment-hub', memberCount: 9000, description: 'Movies, TV, music, and pop culture', primaryLanguage: 'en', location: null, nicheTags: ['entertainment'], adminContactEmail: null, adminContactName: null, rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Programming Hub', platform: 'discord', handle: null, url: 'https://disboard.org/server/681866536555462671', memberCount: 12000, description: 'A place for programmers of all levels', primaryLanguage: 'en', location: null, nicheTags: ['technology', 'education'], adminContactEmail: null, adminContactName: null, adminContactHandle: 'disboard:681866536555462671', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Fitness & Health Community', platform: 'discord', handle: null, url: 'https://disboard.org/server/fitness-health', memberCount: 8500, description: 'Health, fitness tips, and motivation', primaryLanguage: 'en', location: null, nicheTags: ['fitness', 'health'], adminContactEmail: null, adminContactName: null, adminContactHandle: 'disboard:fitness-health', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Investors Hub', platform: 'discord', handle: null, url: 'https://disboard.org/server/investors-hub', memberCount: 15000, description: 'Stock market, crypto, and personal finance', primaryLanguage: 'en', location: null, nicheTags: ['finance'], adminContactEmail: null, adminContactName: null, adminContactHandle: 'disboard:investors-hub', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'The Gaming Lounge', platform: 'discord', handle: null, url: 'https://disboard.org/server/gaming-lounge', memberCount: 25000, description: 'Gaming community for all platforms', primaryLanguage: 'en', location: null, nicheTags: ['gaming'], adminContactEmail: null, adminContactName: null, adminContactHandle: 'disboard:gaming-lounge', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Travel Explorers', platform: 'discord', handle: null, url: 'https://disboard.org/server/travel-explorers', memberCount: 5000, description: 'Travel tips, destinations, and stories', primaryLanguage: 'en', location: null, nicheTags: ['travel'], adminContactEmail: null, adminContactName: null, adminContactHandle: 'disboard:travel-explorers', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Food Lovers', platform: 'discord', handle: null, url: 'https://disboard.org/server/food-lovers', memberCount: 7500, description: 'Recipes, cooking tips, and food photography', primaryLanguage: 'en', location: null, nicheTags: ['food'], adminContactEmail: null, adminContactName: null, adminContactHandle: 'disboard:food-lovers', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Fashion Forward', platform: 'discord', handle: null, url: 'https://disboard.org/server/fashion-forward', memberCount: 4200, description: 'Fashion trends and style advice', primaryLanguage: 'en', location: null, nicheTags: ['fashion'], adminContactEmail: null, adminContactName: null, adminContactHandle: 'disboard:fashion-forward', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Parents Connect', platform: 'discord', handle: null, url: 'https://disboard.org/server/parents-connect', memberCount: 3800, description: 'Parenting tips and family support', primaryLanguage: 'en', location: null, nicheTags: ['parenting'], adminContactEmail: null, adminContactName: null, adminContactHandle: 'disboard:parents-connect', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Study Together', platform: 'discord', handle: null, url: 'https://disboard.org/server/study-together', memberCount: 18000, description: 'Study accountability and education resources', primaryLanguage: 'en', location: null, nicheTags: ['education'], adminContactEmail: null, adminContactName: null, adminContactHandle: 'disboard:study-together', rawMetadata: null, verificationStatus: 'unverified' },
+  { name: 'Entertainment Hub', platform: 'discord', handle: null, url: 'https://disboard.org/server/entertainment-hub', memberCount: 9000, description: 'Movies, TV, music, and pop culture', primaryLanguage: 'en', location: null, nicheTags: ['entertainment'], adminContactEmail: null, adminContactName: null, adminContactHandle: 'disboard:entertainment-hub', rawMetadata: null, verificationStatus: 'unverified' },
 ];
 
 async function scrapeDiscord(): Promise<NewScrapedCommunity[]> {
@@ -230,6 +230,64 @@ async function upsertCommunities(communities: NewScrapedCommunity[]): Promise<nu
   return inserted;
 }
 
+// ─── Reddit Moderator Enrichment ─────────────────────────────────────────────
+// For Reddit subreddits already in the DB with no adminContactName, batch-fetch
+// the top moderator username from the public /about/moderators.json endpoint
+// and store it as adminContactName (u/{username}).
+
+interface RedditModerator {
+  name: string;
+}
+interface RedditModeratorListing {
+  data: { children: Array<{ data: RedditModerator }> };
+}
+
+/**
+ * Enrich up to `limit` Reddit records that are missing adminContactName.
+ * Fetches top moderator username and stores as "u/{username}".
+ * Rate-limited to ~1 request per second to respect Reddit's guidelines.
+ */
+async function enrichRedditModerators(limit = 100): Promise<number> {
+  const rows = await db
+    .select({ id: scrapedCommunities.id, handle: scrapedCommunities.handle })
+    .from(scrapedCommunities)
+    .where(
+      and(
+        eq(scrapedCommunities.platform, 'reddit'),
+        isNull(scrapedCommunities.adminContactName),
+      ),
+    )
+    .limit(limit);
+
+  let enriched = 0;
+
+  for (const row of rows) {
+    if (!row.handle) continue;
+    const url = `https://www.reddit.com/r/${row.handle}/about/moderators.json`;
+    try {
+      const res = await safeFetch(url, { signal: AbortSignal.timeout(10_000) });
+      if (!res.ok) {
+        await sleep(1200);
+        continue;
+      }
+      const data = (await res.json()) as RedditModeratorListing;
+      const topMod = data?.data?.children?.[0]?.data?.name;
+      if (topMod) {
+        await db
+          .update(scrapedCommunities)
+          .set({ adminContactName: `u/${topMod}`, adminContactHandle: `u/${topMod}`, updatedAt: new Date() })
+          .where(eq(scrapedCommunities.id, row.id));
+        enriched++;
+      }
+    } catch {
+      // Skip on error; will retry on next scrape run
+    }
+    await sleep(1200);
+  }
+
+  return enriched;
+}
+
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 export interface ScrapeResult {
@@ -254,6 +312,15 @@ export async function runScraper(): Promise<ScrapeResult[]> {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[scraper] Reddit error:', msg);
     results.push({ platform: 'reddit', fetched: 0, inserted: 0, error: msg });
+  }
+
+  // Reddit moderator enrichment — batch-enrich up to 100 records per run
+  try {
+    console.log('[scraper] Enriching Reddit moderator contact info…');
+    const enriched = await enrichRedditModerators(100);
+    console.log(`[scraper] Reddit moderators: enriched ${enriched} records`);
+  } catch (err) {
+    console.error('[scraper] Reddit moderator enrichment error:', err);
   }
 
   // Telegram seed
@@ -285,7 +352,12 @@ export async function runScraper(): Promise<ScrapeResult[]> {
   return results;
 }
 
-export async function getScraperStats(): Promise<{ total: number; byPlatform: Record<string, number>; byStatus: Record<string, number> }> {
+export async function getScraperStats(): Promise<{
+  total: number;
+  byPlatform: Record<string, number>;
+  byStatus: Record<string, number>;
+  contactCoverage: { withEmail: number; withName: number; withHandle: number; withAnyContact: number; coveragePct: number };
+}> {
   const rows = await db.execute(sql`
     SELECT
       COUNT(*)::int AS total,
@@ -293,6 +365,16 @@ export async function getScraperStats(): Promise<{ total: number; byPlatform: Re
       verification_status
     FROM scraped_communities
     GROUP BY platform, verification_status
+  `);
+
+  const contactRows = await db.execute(sql`
+    SELECT
+      COUNT(*)::int AS total,
+      COUNT(admin_contact_email)::int AS with_email,
+      COUNT(admin_contact_name)::int AS with_name,
+      COUNT(admin_contact_handle)::int AS with_handle,
+      COUNT(CASE WHEN admin_contact_email IS NOT NULL OR admin_contact_name IS NOT NULL OR admin_contact_handle IS NOT NULL THEN 1 END)::int AS with_any
+    FROM scraped_communities
   `);
 
   const byPlatform: Record<string, number> = {};
@@ -306,5 +388,16 @@ export async function getScraperStats(): Promise<{ total: number; byPlatform: Re
     byStatus[row.verification_status] = (byStatus[row.verification_status] || 0) + count;
   }
 
-  return { total, byPlatform, byStatus };
+  const cr = (contactRows.rows[0] ?? {}) as { total: number; with_email: number; with_name: number; with_handle: number; with_any: number };
+  const ctTotal = Number(cr.total ?? total);
+  const withAny = Number(cr.with_any ?? 0);
+  const contactCoverage = {
+    withEmail: Number(cr.with_email ?? 0),
+    withName: Number(cr.with_name ?? 0),
+    withHandle: Number(cr.with_handle ?? 0),
+    withAnyContact: withAny,
+    coveragePct: ctTotal > 0 ? Math.round((withAny / ctTotal) * 100) : 0,
+  };
+
+  return { total, byPlatform, byStatus, contactCoverage };
 }

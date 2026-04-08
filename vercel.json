@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://sphere-api-2ejb.onrender.com*"
+      "destination": "https://sphere-api-2ejb.onrender.com/api/:path*"
     }
   ],
   "headers": [

@@ -111,9 +111,18 @@ export default function BrandDashboard() {
         {/* Campaign list */}
         {data.campaigns.length === 0 ? (
           <div className="bg-white rounded-lg border p-12 text-center">
-            <p className="text-gray-400 mb-4">No campaigns yet</p>
-            <Link href="/brand/campaigns/new" className="text-indigo-600 text-sm hover:underline">
-              Create your first campaign →
+            <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </div>
+            <h3 className="text-base font-semibold text-gray-800 mb-1">Launch your first campaign</h3>
+            <p className="text-sm text-gray-500 mb-5 max-w-xs mx-auto">Create a brief and let Sphere match you with the best communities in 24 hours.</p>
+            <Link
+              href="/brand/campaigns/new"
+              className="inline-block bg-blue-600 text-white text-sm px-5 py-2 rounded-md hover:bg-blue-700 font-medium"
+            >
+              Create Campaign
             </Link>
           </div>
         ) : (

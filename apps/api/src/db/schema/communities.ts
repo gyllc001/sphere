@@ -72,6 +72,11 @@ export const communities = pgTable('communities', {
   vertical: varchar('vertical', { length: 50 }),
   // Brand safety: self-declared content topic tags
   contentTopics: text('content_topics').array().notNull().default([]),
+  // Collab preferences (JSON arrays stored as text)
+  contentTypesAccepted: text('content_types_accepted'),
+  topicsExcluded: text('topics_excluded'),
+  // Verification
+  verificationStatus: varchar('verification_status', { length: 20 }).notNull().default('unverified'),
   status: communityStatusEnum('status').notNull().default('pending_review'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

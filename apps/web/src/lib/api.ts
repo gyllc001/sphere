@@ -261,7 +261,29 @@ export interface Community {
   adminPhone?: string;
   adminFacebookPageId?: string;
   vertical?: string;
+  contentTypesAccepted?: string; // JSON array string
+  topicsExcluded?: string; // JSON array string
+  verificationStatus?: string;
   status: string;
+}
+
+export interface CommunityProfile {
+  id: string;
+  name: string;
+  platform: string;
+  platformUrl?: string;
+  niche?: string;
+  description?: string;
+  memberCount: number;
+  engagementRate?: string;
+  vertical?: string;
+  contentTypesAccepted?: string;
+  topicsExcluded?: string;
+  verificationStatus: string;
+  status: string;
+  baseRate?: number;
+  ownerName: string;
+  createdAt: string;
 }
 
 export interface Opportunity {
@@ -339,8 +361,11 @@ export interface InboundApplication {
 }
 
 export const communityPortal = {
-  createCommunity: (token: string, data: Partial<Community>) =>
+  createCommunity: (token: string, data: Partial<Community> & { contentTypesAccepted?: string[]; topicsExcluded?: string[] }) =>
     request<Community>('/api/owner/communities', { method: 'POST', token, body: JSON.stringify(data) }),
+
+  updateCommunity: (token: string, id: string, data: Partial<Community> & { contentTypesAccepted?: string[]; topicsExcluded?: string[] }) =>
+    request<Community>(`/api/owner/communities/${id}`, { method: 'PATCH', token, body: JSON.stringify(data) }),
 
   listCommunities: (token: string) =>
     request<Community[]>('/api/owner/communities', { token }),
@@ -378,6 +403,11 @@ export const communityPortal = {
 
   myApplications: (token: string) =>
     request<CampaignApplication[]>('/api/owner/my-applications', { token }),
+};
+
+export const communityProfileApi = {
+  get: (token: string, communityId: string) =>
+    request<CommunityProfile>(`/api/campaigns/communities/${communityId}`, { token }),
 };
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
@@ -442,6 +472,80 @@ export const dealsApi = {
 
   sign: (token: string, id: string) =>
     request<Deal>(`/api/deals/${id}/sign`, { method: 'PATCH', token }),
+};
+
+// ── Content Submissions ───────────────────────────────────────────────────────
+
+export type ContentSubmissionStatus =
+  | 'draft'
+  | 'pending_review'
+  | 'changes_requested'
+  | 'approved'
+  | 'posted'
+  | 'confirmed'
+  | 'disputed';
+
+export interface ContentSubmission {
+  id: string;
+  dealId: string;
+  brief: string;
+  assetUrls: string; // JSON array string
+  status: ContentSubmissionStatus;
+  brandApproved: number;
+  communityApproved: number;
+  changesRequestedNote?: string;
+  postUrl?: string;
+  postedAt?: string;
+  confirmedAt?: string;
+  payoutQueuedAt?: string;
+  disputedAt?: string;
+  disputeNote?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const contentApi = {
+  list: (token: string, dealId: string) =>
+    request<ContentSubmission[]>(`/api/deals/${dealId}/content`, { token }),
+
+  submit: (token: string, dealId: string, data: { brief: string; assetUrls?: string[] }) =>
+    request<ContentSubmission>(`/api/deals/${dealId}/content`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify(data),
+    }),
+
+  approve: (token: string, dealId: string, submissionId: string) =>
+    request<ContentSubmission>(`/api/deals/${dealId}/content/${submissionId}/approve`, {
+      method: 'POST',
+      token,
+    }),
+
+  requestChanges: (token: string, dealId: string, submissionId: string, note: string) =>
+    request<ContentSubmission>(`/api/deals/${dealId}/content/${submissionId}/request-changes`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ note }),
+    }),
+
+  markPosted: (token: string, dealId: string, submissionId: string, postUrl?: string) =>
+    request<ContentSubmission>(`/api/deals/${dealId}/content/${submissionId}/posted`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ postUrl }),
+    }),
+
+  confirm: (token: string, dealId: string, submissionId: string) =>
+    request<{ submission: ContentSubmission; payoutQueued: boolean; message: string }>(
+      `/api/deals/${dealId}/content/${submissionId}/confirm`,
+      { method: 'POST', token }
+    ),
+
+  dispute: (token: string, dealId: string, submissionId: string, note: string) =>
+    request<{ submission: ContentSubmission; message: string }>(
+      `/api/deals/${dealId}/content/${submissionId}/dispute`,
+      { method: 'POST', token, body: JSON.stringify({ note }) }
+    ),
 };
 
 // ── Messages ──────────────────────────────────────────────────────────────────

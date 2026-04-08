@@ -27,6 +27,9 @@ const CommunitySchema = z.object({
   adminPhone: z.string().max(50).optional(),
   adminFacebookPageId: z.string().max(100).optional(),
   vertical: z.enum(['Tech', 'Gaming', 'Fashion', 'Mom', 'Finance', 'Health', 'Food', 'Travel', 'Other']).optional(),
+  // Collab preferences (stored as JSON arrays)
+  contentTypesAccepted: z.array(z.string()).optional(),
+  topicsExcluded: z.array(z.string()).optional(),
 });
 
 function toSlug(name: string): string {
@@ -58,6 +61,8 @@ router.post('/communities', async (req: Request, res: Response) => {
     adminPhone: data.adminPhone,
     adminFacebookPageId: data.adminFacebookPageId,
     vertical: data.vertical,
+    contentTypesAccepted: data.contentTypesAccepted ? JSON.stringify(data.contentTypesAccepted) : undefined,
+    topicsExcluded: data.topicsExcluded ? JSON.stringify(data.topicsExcluded) : undefined,
   }).returning();
 
   return res.status(201).json(community);
@@ -86,9 +91,15 @@ router.patch('/communities/:id', async (req: Request, res: Response) => {
     .limit(1);
   if (!existing) return res.status(404).json({ error: 'Community not found' });
 
+  const { contentTypesAccepted, topicsExcluded, ...rest } = parsed.data;
   const [updated] = await db
     .update(communities)
-    .set({ ...parsed.data, updatedAt: new Date() })
+    .set({
+      ...rest,
+      ...(contentTypesAccepted !== undefined ? { contentTypesAccepted: JSON.stringify(contentTypesAccepted) } : {}),
+      ...(topicsExcluded !== undefined ? { topicsExcluded: JSON.stringify(topicsExcluded) } : {}),
+      updatedAt: new Date(),
+    })
     .where(eq(communities.id, req.params.id))
     .returning();
 

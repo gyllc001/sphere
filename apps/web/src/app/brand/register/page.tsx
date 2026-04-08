@@ -37,7 +37,7 @@ export default function BrandRegister() {
       };
       const { token } = await brandAuth.register(payload);
       setToken('brand', token);
-      router.push('/brand/dashboard');
+      router.push('/brand/onboarding');
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {

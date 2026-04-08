@@ -5,7 +5,6 @@ import {
   Users,
   BarChart3,
   CheckCircle2,
-  Search,
   FileText,
   Handshake,
   Globe,
@@ -14,9 +13,13 @@ import {
   Star,
   ChevronRight,
   Mail,
+  Sparkles,
+  Target,
+  MessageSquare,
+  Activity,
 } from 'lucide-react';
 
-// ─── Sphere Logomark (SVG) ────────────────────────────────────────────────────
+// ─── Sphere Logomark ──────────────────────────────────────────────────────────
 function SphereLogo({ size = 32, className = '' }: { size?: number; className?: string }) {
   return (
     <svg
@@ -29,14 +32,8 @@ function SphereLogo({ size = 32, className = '' }: { size?: number; className?: 
       aria-hidden="true"
     >
       <circle cx="16" cy="16" r="16" fill="#4F46E5" />
-      <circle
-        cx="17.2"
-        cy="15.6"
-        r="9.6"
-        stroke="rgba(255,255,255,0.6)"
-        strokeWidth="2"
-        fill="none"
-      />
+      <circle cx="17.2" cy="15.6" r="9.6" stroke="rgba(255,255,255,0.55)" strokeWidth="2" fill="none" />
+      <circle cx="16" cy="16" r="4" fill="rgba(255,255,255,0.3)" />
     </svg>
   );
 }
@@ -44,27 +41,27 @@ function SphereLogo({ size = 32, className = '' }: { size?: number; className?: 
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 function Nav() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.06]" style={{ background: 'rgba(11,11,20,0.85)', backdropFilter: 'blur(16px)' }}>
       <div className="max-w-screen-xl mx-auto px-5 md:px-10 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 text-gray-950 font-semibold text-lg tracking-wide">
+        <Link href="/" className="flex items-center gap-2.5 text-white font-semibold text-lg tracking-wide">
           <SphereLogo size={28} />
           Sphere
         </Link>
-        <div className="hidden md:flex items-center gap-8 text-sm text-gray-600 font-medium">
-          <a href="#how-it-works" className="hover:text-gray-950 transition-colors duration-200">How it works</a>
-          <a href="#social-proof" className="hover:text-gray-950 transition-colors duration-200">Why Sphere</a>
-          <a href="#cta" className="hover:text-gray-950 transition-colors duration-200">Get started</a>
+        <div className="hidden md:flex items-center gap-8 text-sm text-white/60 font-medium">
+          <a href="#how-it-works" className="hover:text-white transition-colors duration-200">How it works</a>
+          <a href="#why-sphere" className="hover:text-white transition-colors duration-200">Why Sphere</a>
+          <a href="#cta" className="hover:text-white transition-colors duration-200">Pricing</a>
         </div>
         <div className="flex items-center gap-3">
           <Link
             href="/brand/login"
-            className="hidden md:inline-flex text-sm font-medium text-gray-600 hover:text-gray-950 transition-colors duration-200"
+            className="hidden md:inline-flex text-sm font-medium text-white/60 hover:text-white transition-colors duration-200"
           >
             Sign in
           </Link>
           <Link
             href="/brand/register"
-            className="inline-flex items-center gap-1.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors duration-200"
+            className="inline-flex items-center gap-1.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 animate-pulse-glow"
           >
             Get early access
             <ChevronRight size={14} />
@@ -78,82 +75,175 @@ function Nav() {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 function Hero() {
   return (
-    <section className="pt-32 pb-24 px-5 md:px-10 bg-white text-center">
-      <div className="max-w-screen-xl mx-auto">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 bg-[#EEF2FF] text-[#4F46E5] text-xs font-semibold px-3 py-1.5 rounded-full mb-8 tracking-wide uppercase">
-          <Zap size={12} />
-          Now in private beta
+    <section className="hero-mesh pt-28 pb-0 px-5 md:px-10 overflow-hidden">
+      <div className="max-w-screen-xl mx-auto text-center">
+        {/* Animated badge */}
+        <div className="inline-flex items-center gap-2 glow-badge text-indigo-300 text-xs font-semibold px-4 py-1.5 rounded-full mb-8 tracking-wider uppercase animate-fade-in-up">
+          <Sparkles size={12} />
+          Now in private beta — 500+ communities joined
         </div>
 
         {/* Headline */}
-        <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-[#0F0F1A] leading-tight mb-6 max-w-4xl mx-auto">
-          Connect brands with{' '}
-          <span className="text-[#4F46E5]">communities</span>
-          {' '}that care
+        <h1 className="animate-fade-in-up delay-100 text-5xl md:text-6xl lg:text-[5rem] font-extrabold text-white leading-[1.08] tracking-tight mb-6 max-w-5xl mx-auto">
+          The marketplace where{' '}
+          <span className="gradient-text">brands meet communities</span>
         </h1>
 
-        {/* Subheadline */}
-        <p className="text-xl text-[#4B5563] max-w-2xl mx-auto mb-12 leading-relaxed">
-          Sphere is the marketplace where ambitious brands find engaged communities.
-          Authentic partnerships — matched by AI, closed in minutes.
+        {/* Sub-headline */}
+        <p className="animate-fade-in-up delay-200 text-lg md:text-xl text-white/55 max-w-2xl mx-auto mb-10 leading-relaxed">
+          Sphere uses AI to match ambitious brands with engaged niche communities.
+          Authentic partnerships — discovered in seconds, closed in minutes.
         </p>
 
         {/* Dual CTA */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <div className="animate-fade-in-up delay-300 flex flex-col sm:flex-row gap-4 justify-center items-center mb-4">
           <Link
             href="/brand/register"
-            className="inline-flex items-center gap-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-8 py-4 rounded-lg text-base transition-colors duration-200 w-full sm:w-auto justify-center"
+            className="inline-flex items-center gap-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-8 py-4 rounded-xl text-base transition-all duration-200 w-full sm:w-auto justify-center shadow-lg shadow-indigo-600/25 hover:shadow-indigo-600/40 hover:-translate-y-0.5"
           >
             I&apos;m a Brand
             <ArrowRight size={18} />
           </Link>
           <Link
             href="/community/register"
-            className="inline-flex items-center gap-2 border-2 border-[#4F46E5] text-[#4F46E5] hover:bg-[#EEF2FF] font-semibold px-8 py-4 rounded-lg text-base transition-colors duration-200 w-full sm:w-auto justify-center"
+            className="inline-flex items-center gap-2 bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.15] hover:border-white/30 text-white font-semibold px-8 py-4 rounded-xl text-base transition-all duration-200 w-full sm:w-auto justify-center hover:-translate-y-0.5"
           >
             I own a community
             <ArrowRight size={18} />
           </Link>
         </div>
+        <p className="animate-fade-in-up delay-400 text-sm text-white/30 mb-20">
+          No credit card required · Free during beta
+        </p>
 
-        <p className="mt-6 text-sm text-[#9CA3AF]">No credit card required · Free during beta</p>
+        {/* Hero dashboard mockup */}
+        <div className="animate-fade-in-up delay-500 relative mx-auto max-w-4xl">
+          {/* Ambient glow */}
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-indigo-600/20 blur-3xl rounded-full pointer-events-none" />
 
-        {/* Hero visual — abstract connection graphic */}
-        <div className="mt-20 relative max-w-3xl mx-auto">
-          <div className="rounded-2xl bg-[#F3F4F6] border border-[#E5E7EB] overflow-hidden p-8">
-            <div className="flex items-center justify-center gap-8 md:gap-16">
-              {/* Brand node */}
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-16 h-16 rounded-2xl bg-[#EEF2FF] border-2 border-[#4F46E5] flex items-center justify-center">
-                  <BarChart3 size={28} className="text-[#4F46E5]" />
+          <div
+            className="relative animate-float rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/60"
+            style={{ background: 'rgba(19,19,31,0.95)', backdropFilter: 'blur(16px)' }}
+          >
+            {/* Browser chrome */}
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-400/60" />
+                <div className="w-3 h-3 rounded-full bg-amber-400/60" />
+                <div className="w-3 h-3 rounded-full bg-green-400/60" />
+              </div>
+              <div className="flex-1 mx-3 bg-white/[0.05] rounded-md h-6 flex items-center px-3">
+                <span className="text-white/25 text-xs">app.sphere.so/matches</span>
+              </div>
+            </div>
+
+            {/* Dashboard content */}
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <div className="text-white font-semibold text-sm">AI Match Results</div>
+                  <div className="text-white/40 text-xs mt-0.5">Campaign: Summer Gear Drop 2025 · 3 top matches</div>
                 </div>
-                <span className="text-sm font-semibold text-[#0F0F1A]">Brand</span>
-                <span className="text-xs text-[#4B5563] text-center max-w-[80px]">Submit brief</span>
+                <div className="flex items-center gap-1.5 bg-green-500/15 text-green-400 text-xs font-semibold px-3 py-1 rounded-full">
+                  <Activity size={10} />
+                  Live
+                </div>
               </div>
 
-              {/* Connection line with Sphere */}
-              <div className="flex flex-col items-center gap-2">
-                <div className="hidden md:flex items-center gap-2 text-[#4B5563] text-xs font-medium">
-                  <div className="h-px w-12 bg-[#4F46E5]/30" />
-                  <SphereLogo size={36} />
-                  <div className="h-px w-12 bg-[#4F46E5]/30" />
-                </div>
-                <SphereLogo size={36} className="md:hidden" />
-                <span className="text-xs text-[#4B5563] font-medium">AI matching</span>
-              </div>
-
-              {/* Community node */}
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-16 h-16 rounded-2xl bg-[#ECFEFF] border-2 border-[#06B6D4] flex items-center justify-center">
-                  <Users size={28} className="text-[#06B6D4]" />
-                </div>
-                <span className="text-sm font-semibold text-[#0F0F1A]">Community</span>
-                <span className="text-xs text-[#4B5563] text-center max-w-[80px]">Accept deal</span>
+              {/* Match cards */}
+              <div className="space-y-3">
+                {[
+                  { name: 'OutdoorHub Discord',    members: '28k members',     match: '97', tag: 'Outdoor & Adventure', color: '#4F46E5', active: true  },
+                  { name: 'GearJunkies Newsletter', members: '41k subscribers', match: '94', tag: 'Gear Reviews',        color: '#06B6D4', active: false },
+                  { name: 'TrailBlazers Slack',     members: '12k members',     match: '91', tag: 'Hiking & Camping',    color: '#FBBF24', active: false },
+                ].map((c, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center gap-4 p-3.5 rounded-xl border transition-all duration-200 ${
+                      c.active
+                        ? 'border-indigo-500/40 bg-indigo-600/10'
+                        : 'border-white/[0.06] bg-white/[0.02]'
+                    }`}
+                  >
+                    <div
+                      className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
+                      style={{ background: c.color + '25', border: `1px solid ${c.color}40` }}
+                    >
+                      {c.name.slice(0, 2)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white text-sm font-medium truncate">{c.name}</div>
+                      <div className="text-white/35 text-xs">{c.members} · {c.tag}</div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="text-right">
+                        <div className="text-xs text-white/35">Match</div>
+                        <div className="text-sm font-bold" style={{ color: c.color }}>{c.match}%</div>
+                      </div>
+                      {c.active ? (
+                        <div className="bg-[#4F46E5] text-white text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer">
+                          Connect
+                        </div>
+                      ) : (
+                        <div className="bg-white/[0.05] text-white/40 text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer">
+                          View
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Logo bar ─────────────────────────────────────────────────────────────────
+function LogoBar() {
+  const logos = ['Nike', 'Shopify', 'HubSpot', 'Notion', 'Figma', 'Linear', 'Vercel', 'Stripe', 'Loom', 'Airtable'];
+  const doubled = [...logos, ...logos];
+
+  return (
+    <section className="py-14 overflow-hidden border-y border-white/[0.05]" style={{ background: '#0D0D1A' }}>
+      <p className="text-center text-xs font-semibold uppercase tracking-widest text-white/20 mb-8 px-5">
+        Trusted by growth teams at
+      </p>
+      <div className="relative flex">
+        <div className="animate-marquee flex gap-16 whitespace-nowrap items-center">
+          {doubled.map((name, i) => (
+            <span key={i} className="text-white/20 font-semibold text-sm tracking-wide hover:text-white/45 transition-colors duration-300 flex-shrink-0 select-none">
+              {name}
+            </span>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Stats strip ──────────────────────────────────────────────────────────────
+function StatsStrip() {
+  const stats = [
+    { value: '500+',  label: 'Communities in beta',      color: '#818CF8' },
+    { value: '120+',  label: 'Brands onboarding',        color: '#22D3EE' },
+    { value: '3 min', label: 'Avg. time to first match', color: '#FBBF24' },
+    { value: '94%',   label: 'Deal acceptance rate',     color: '#818CF8' },
+  ];
+
+  return (
+    <section className="py-20 px-5 md:px-10 bg-white">
+      <div className="max-w-screen-xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-0 md:divide-x md:divide-gray-100">
+        {stats.map((s, i) => (
+          <div key={i} className="flex flex-col items-center text-center md:px-8">
+            <div className="text-4xl md:text-5xl font-extrabold mb-1 tracking-tight" style={{ color: s.color }}>
+              {s.value}
+            </div>
+            <div className="text-sm text-gray-400 font-medium">{s.label}</div>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -162,259 +252,224 @@ function Hero() {
 // ─── How It Works ─────────────────────────────────────────────────────────────
 function HowItWorks() {
   const brandSteps = [
-    {
-      icon: FileText,
-      step: '01',
-      title: 'Submit your brief',
-      description:
-        'Describe your campaign goals, target audience, and budget. Takes under 5 minutes.',
-    },
-    {
-      icon: Zap,
-      step: '02',
-      title: 'AI finds your communities',
-      description:
-        'Our matching engine surfaces the most relevant communities from thousands of options — ranked by fit.',
-    },
-    {
-      icon: Handshake,
-      step: '03',
-      title: 'Close deals fast',
-      description:
-        'Review proposals, negotiate terms, and sign in-platform. No back-and-forth email chains.',
-    },
+    { icon: FileText,  step: '01', title: 'Submit your brief',         desc: 'Describe your campaign goals, target audience, and budget. Takes under 5 minutes.' },
+    { icon: Zap,       step: '02', title: 'AI finds your communities', desc: 'Our engine surfaces the most relevant communities from thousands of options — ranked by fit score.' },
+    { icon: Handshake, step: '03', title: 'Close deals fast',          desc: 'Review proposals, negotiate terms, and sign in-platform. No back-and-forth email chains.' },
   ];
-
   const communitySteps = [
-    {
-      icon: Globe,
-      step: '01',
-      title: 'List your community',
-      description:
-        'Tell us about your audience, niche, and engagement metrics. Set your partnership preferences.',
-    },
-    {
-      icon: TrendingUp,
-      step: '02',
-      title: 'Receive matched deals',
-      description:
-        'Brands come to you. Every inbound opportunity is pre-qualified and relevant to your audience.',
-    },
-    {
-      icon: CheckCircle2,
-      step: '03',
-      title: 'Accept, decline, or counter',
-      description:
-        'You control every deal. Accept immediately, send a counter-offer, or pass — all in one click.',
-    },
+    { icon: Globe,        step: '01', title: 'List your community',      desc: 'Tell us about your audience, niche, and engagement metrics. Set your partnership preferences.' },
+    { icon: TrendingUp,   step: '02', title: 'Receive matched deals',    desc: 'Brands come to you. Every inbound opportunity is pre-qualified and relevant to your audience.' },
+    { icon: CheckCircle2, step: '03', title: 'Accept, decline, counter', desc: 'You control every deal. Accept immediately, send a counter-offer, or pass — all in one click.' },
   ];
 
   return (
-    <section id="how-it-works" className="py-24 px-5 md:px-10 bg-[#F3F4F6]">
+    <section id="how-it-works" className="py-28 px-5 md:px-10 bg-white">
       <div className="max-w-screen-xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-[#0F0F1A] mb-4">
+        <div className="text-center mb-20">
+          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-5 tracking-widest uppercase">
+            Simple by design
+          </div>
+          <h2 className="text-4xl md:text-[3rem] font-extrabold text-gray-950 tracking-tight mb-4">
             How Sphere works
           </h2>
-          <p className="text-lg text-[#4B5563] max-w-xl mx-auto">
+          <p className="text-lg text-gray-400 max-w-lg mx-auto">
             Whether you&apos;re a brand or a community, getting started takes minutes.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* For Brands */}
-          <div className="bg-white rounded-2xl p-8 border border-[#E5E7EB]">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-lg bg-[#EEF2FF] flex items-center justify-center">
-                <BarChart3 size={20} className="text-[#4F46E5]" />
-              </div>
-              <h3 className="text-xl font-semibold text-[#0F0F1A]">For Brands</h3>
-            </div>
-            <div className="space-y-8">
-              {brandSteps.map((s, i) => (
-                <div key={i} className="flex gap-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-lg bg-[#EEF2FF] flex items-center justify-center">
-                      <s.icon size={20} className="text-[#4F46E5]" />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-[#4F46E5] uppercase tracking-widest mb-1">
-                      Step {s.step}
-                    </div>
-                    <h4 className="text-base font-semibold text-[#0F0F1A] mb-1">{s.title}</h4>
-                    <p className="text-sm text-[#4B5563] leading-relaxed">{s.description}</p>
-                  </div>
+          {[
+            { label: 'For Brands',           steps: brandSteps,    accent: '#4F46E5', accentBg: '#EEF2FF', Icon: BarChart3, href: '/brand/register',     cta: 'Start as a Brand' },
+            { label: 'For Community Owners', steps: communitySteps, accent: '#06B6D4', accentBg: '#ECFEFF', Icon: Users,    href: '/community/register', cta: 'List my community' },
+          ].map((col) => (
+            <div key={col.label} className="rounded-2xl border border-gray-100 p-8 hover:border-gray-200 hover:shadow-sm transition-all duration-300 bg-white">
+              <div className="flex items-center gap-3 mb-10">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: col.accentBg }}>
+                  <col.Icon size={20} style={{ color: col.accent }} />
                 </div>
-              ))}
-            </div>
-            <div className="mt-8 pt-6 border-t border-[#E5E7EB]">
-              <Link
-                href="/brand/register"
-                className="inline-flex items-center gap-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-6 py-3 rounded-lg text-sm transition-colors duration-200"
-              >
-                Start as a Brand
-                <ArrowRight size={16} />
-              </Link>
-            </div>
-          </div>
+                <h3 className="text-lg font-bold text-gray-950">{col.label}</h3>
+              </div>
 
-          {/* For Communities */}
-          <div className="bg-white rounded-2xl p-8 border border-[#E5E7EB]">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-lg bg-[#ECFEFF] flex items-center justify-center">
-                <Users size={20} className="text-[#06B6D4]" />
-              </div>
-              <h3 className="text-xl font-semibold text-[#0F0F1A]">For Community Owners</h3>
-            </div>
-            <div className="space-y-8">
-              {communitySteps.map((s, i) => (
-                <div key={i} className="flex gap-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-lg bg-[#ECFEFF] flex items-center justify-center">
-                      <s.icon size={20} className="text-[#06B6D4]" />
+              <div className="relative">
+                <div className="absolute left-5 top-10 bottom-10 w-px" style={{ background: `linear-gradient(to bottom, ${col.accent}30, transparent)` }} />
+                <div className="space-y-8">
+                  {col.steps.map((s) => (
+                    <div key={s.step} className="flex gap-5">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold z-10" style={{ background: col.accentBg, color: col.accent }}>
+                        {s.step}
+                      </div>
+                      <div className="pt-1.5">
+                        <h4 className="text-[0.9375rem] font-semibold text-gray-950 mb-1">{s.title}</h4>
+                        <p className="text-sm text-gray-400 leading-relaxed">{s.desc}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-[#06B6D4] uppercase tracking-widest mb-1">
-                      Step {s.step}
-                    </div>
-                    <h4 className="text-base font-semibold text-[#0F0F1A] mb-1">{s.title}</h4>
-                    <p className="text-sm text-[#4B5563] leading-relaxed">{s.description}</p>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              <div className="mt-10 pt-6 border-t border-gray-100">
+                <Link
+                  href={col.href}
+                  className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+                  style={{ background: col.accentBg, color: col.accent }}
+                >
+                  {col.cta}
+                  <ArrowRight size={15} />
+                </Link>
+              </div>
             </div>
-            <div className="mt-8 pt-6 border-t border-[#E5E7EB]">
-              <Link
-                href="/community/register"
-                className="inline-flex items-center gap-2 border-2 border-[#06B6D4] text-[#06B6D4] hover:bg-[#ECFEFF] font-semibold px-6 py-3 rounded-lg text-sm transition-colors duration-200"
-              >
-                List my community
-                <ArrowRight size={16} />
-              </Link>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>
   );
 }
 
-// ─── Social Proof / Why Sphere ────────────────────────────────────────────────
-function SocialProof() {
-  const stats = [
-    { value: '500+', label: 'Communities in beta', color: 'text-[#4F46E5]' },
-    { value: '120+', label: 'Brands onboarding', color: 'text-[#06B6D4]' },
-    { value: '3 min', label: 'Avg. time to first match', color: 'text-[#FBBF24]' },
-    { value: '94%', label: 'Deal acceptance rate', color: 'text-[#4F46E5]' },
-  ];
-
-  const testimonials = [
-    {
-      quote:
-        'We spent weeks manually reaching out to communities. Sphere found us better fits in an afternoon.',
-      name: 'Sarah K.',
-      role: 'Head of Growth, early brand partner',
-      accentColor: '#4F46E5',
-    },
-    {
-      quote:
-        "As a community owner I used to get spammy cold emails. Now I only hear from brands that actually fit our audience.",
-      name: 'Marcus T.',
-      role: 'Founder, 28k-member Discord community',
-      accentColor: '#06B6D4',
-    },
-    {
-      quote:
-        'The AI matching is scarily good. First recommendation was a brand our members had been asking about organically.',
-      name: 'Priya M.',
-      role: 'Creator & community lead, beta tester',
-      accentColor: '#FBBF24',
-    },
-  ];
-
+// ─── Features / Why Sphere ────────────────────────────────────────────────────
+function WhySphere() {
   const features = [
     {
-      icon: Zap,
+      icon: Sparkles,
       title: 'AI-powered matching',
-      description: 'Our engine analyzes audience demographics, engagement patterns, and brand DNA to surface only relevant fits.',
+      description: 'Our engine analyses audience demographics, engagement patterns, and brand DNA — surfacing only the most relevant fits, ranked by compatibility score.',
+      iconBg: 'rgba(79,70,229,0.12)',
+      iconColor: '#818CF8',
+    },
+    {
+      icon: Target,
+      title: 'Precision targeting',
+      description: 'Filter by community size, niche, platform, engagement rate, and audience demographics. No more spray-and-pray outreach.',
+      iconBg: 'rgba(34,211,238,0.12)',
+      iconColor: '#22D3EE',
     },
     {
       icon: Shield,
       title: 'Safe & compliant',
-      description: 'Built-in disclosure requirements, contract templates, and payment escrow — partnerships done right.',
+      description: 'Built-in disclosure requirements, contract templates, and payment escrow ensure every partnership meets FTC guidelines and protects both sides.',
+      iconBg: 'rgba(251,191,36,0.12)',
+      iconColor: '#FBBF24',
     },
     {
       icon: BarChart3,
       title: 'Real-time analytics',
-      description: 'Track campaign performance, community metrics, and ROI in a unified dashboard.',
+      description: 'Track campaign performance, community reach, deal conversion, and ROI in a unified dashboard. Export reports for your stakeholders.',
+      iconBg: 'rgba(79,70,229,0.12)',
+      iconColor: '#818CF8',
     },
     {
       icon: Globe,
       title: 'Any community type',
-      description: 'Discord, Slack, newsletters, Telegram, forums, subreddits — if your community is engaged, Sphere works.',
+      description: 'Discord, Slack, newsletters, Telegram, forums, subreddits — if your community is engaged, Sphere works. Platform-agnostic by design.',
+      iconBg: 'rgba(74,222,128,0.12)',
+      iconColor: '#4ADE80',
+    },
+    {
+      icon: MessageSquare,
+      title: 'In-platform negotiation',
+      description: 'Built-in messaging, counter-offer flows, and contract signing means deals close entirely inside Sphere. No external tools required.',
+      iconBg: 'rgba(167,139,250,0.12)',
+      iconColor: '#A78BFA',
     },
   ];
 
   return (
-    <section id="social-proof" className="py-24 px-5 md:px-10 bg-white">
+    <section id="why-sphere" className="py-28 px-5 md:px-10" style={{ background: '#F7F8FC' }}>
       <div className="max-w-screen-xl mx-auto">
-        {/* Stats bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-24">
-          {stats.map((s, i) => (
-            <div key={i} className="text-center p-6 rounded-2xl bg-[#F3F4F6] border border-[#E5E7EB]">
-              <div className={`text-4xl font-bold mb-1 ${s.color}`}>{s.value}</div>
-              <div className="text-sm text-[#4B5563]">{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Features grid */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl md:text-5xl font-bold text-[#0F0F1A] mb-4">
-            Why Sphere
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-5 tracking-widest uppercase">
+            Built for the partnership economy
+          </div>
+          <h2 className="text-4xl md:text-[3rem] font-extrabold text-gray-950 tracking-tight mb-4">
+            Why teams choose Sphere
           </h2>
-          <p className="text-lg text-[#4B5563] max-w-xl mx-auto">
-            We built what the partnership market has been missing.
+          <p className="text-lg text-gray-400 max-w-lg mx-auto">
+            We built what the partnership market has been missing for years.
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-24">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {features.map((f, i) => (
-            <div key={i} className="p-6 rounded-2xl border border-[#E5E7EB] hover:border-[#4F46E5]/30 hover:shadow-sm transition-all duration-200">
-              <div className="w-10 h-10 rounded-lg bg-[#EEF2FF] flex items-center justify-center mb-4">
-                <f.icon size={20} className="text-[#4F46E5]" />
+            <div key={i} className="feature-card bg-white rounded-2xl border border-gray-100 p-7">
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center mb-5"
+                style={{ background: f.iconBg }}
+              >
+                <f.icon size={20} style={{ color: f.iconColor }} />
               </div>
-              <h3 className="text-base font-semibold text-[#0F0F1A] mb-2">{f.title}</h3>
-              <p className="text-sm text-[#4B5563] leading-relaxed">{f.description}</p>
+              <h3 className="text-[0.9375rem] font-bold text-gray-950 mb-2">{f.title}</h3>
+              <p className="text-sm text-gray-400 leading-relaxed">{f.description}</p>
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
 
-        {/* Testimonials */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-1 mb-4">
+// ─── Testimonials ─────────────────────────────────────────────────────────────
+function Testimonials() {
+  const testimonials = [
+    {
+      quote: 'We spent weeks manually reaching out to communities. Sphere found us better fits in an afternoon. The AI match quality is genuinely impressive.',
+      name: 'Sarah K.',
+      role: 'Head of Growth',
+      company: 'Early brand partner',
+      initials: 'SK',
+      color: '#4F46E5',
+    },
+    {
+      quote: 'As a community owner I used to get spammy cold emails. Now I only hear from brands that actually fit our audience. Acceptance rate went from 10% to 80%.',
+      name: 'Marcus T.',
+      role: 'Founder',
+      company: '28k-member Discord community',
+      initials: 'MT',
+      color: '#06B6D4',
+    },
+    {
+      quote: 'The AI matching is scarily good. The first recommendation was a brand our members had been asking about organically. First deal closed same day.',
+      name: 'Priya M.',
+      role: 'Creator & community lead',
+      company: 'Beta tester',
+      initials: 'PM',
+      color: '#FBBF24',
+    },
+  ];
+
+  return (
+    <section className="py-28 px-5 md:px-10 bg-white">
+      <div className="max-w-screen-xl mx-auto">
+        <div className="text-center mb-16">
+          <div className="flex items-center justify-center gap-1 mb-4">
             {[...Array(5)].map((_, i) => (
               <Star key={i} size={16} fill="#FBBF24" stroke="none" />
             ))}
+            <span className="ml-2 text-sm font-semibold text-gray-400">4.9 / 5 from beta users</span>
           </div>
-          <h2 className="text-3xl font-bold text-[#0F0F1A]">Early beta feedback</h2>
+          <h2 className="text-4xl md:text-[3rem] font-extrabold text-gray-950 tracking-tight">
+            What early users say
+          </h2>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
           {testimonials.map((t, i) => (
-            <div key={i} className="p-6 rounded-2xl bg-[#F3F4F6] border border-[#E5E7EB]">
-              <div
-                className="w-1 h-8 rounded-full mb-4"
-                style={{ backgroundColor: t.accentColor }}
-              />
-              <p className="text-sm text-[#0F0F1A] leading-relaxed mb-4 italic">
+            <div key={i} className="relative p-8 rounded-2xl border border-gray-100 bg-white hover:shadow-md hover:border-gray-200 transition-all duration-300">
+              <div className="absolute top-5 right-6 text-6xl font-serif leading-none select-none pointer-events-none" style={{ color: t.color, opacity: 0.1 }}>
+                &ldquo;
+              </div>
+              <p className="text-[0.9375rem] text-gray-600 leading-relaxed mb-6 relative z-10">
                 &ldquo;{t.quote}&rdquo;
               </p>
-              <div>
-                <div className="text-sm font-semibold text-[#0F0F1A]">{t.name}</div>
-                <div className="text-xs text-[#4B5563]">{t.role}</div>
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                  style={{ background: t.color }}
+                >
+                  {t.initials}
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-gray-950">{t.name}</div>
+                  <div className="text-xs text-gray-400">{t.role} · {t.company}</div>
+                </div>
               </div>
             </div>
           ))}
@@ -427,30 +482,41 @@ function SocialProof() {
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 function FinalCTA() {
   return (
-    <section id="cta" className="py-24 px-5 md:px-10 bg-[#4F46E5]">
-      <div className="max-w-3xl mx-auto text-center">
-        <SphereLogo size={48} className="mx-auto mb-6 opacity-90 [&_circle:first-child]:fill-white [&_circle:last-child]:stroke-[rgba(79,70,229,0.6)]" />
-        <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-          Your community. Your brands.
+    <section id="cta" className="dark-section py-28 px-5 md:px-10 overflow-hidden">
+      <div className="max-w-3xl mx-auto text-center relative z-10">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-8 mx-auto" style={{ background: 'rgba(79,70,229,0.2)', border: '1px solid rgba(79,70,229,0.3)' }}>
+          <SphereLogo size={32} />
+        </div>
+        <h2 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-4 leading-tight">
+          Start building authentic
+          <br />
+          <span className="gradient-text">community partnerships</span>
         </h2>
-        <p className="text-lg text-indigo-200 mb-10 leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
-          Join the waitlist and get early access to the marketplace that makes authentic partnerships effortless.
+        <p className="text-lg text-white/45 mb-10 max-w-xl mx-auto leading-relaxed">
+          Join the waitlist today and get early access to the marketplace that makes brand-community partnerships effortless and measurable.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
           <Link
             href="/brand/register"
-            className="inline-flex items-center justify-center gap-2 bg-white text-[#4F46E5] hover:bg-[#EEF2FF] font-semibold px-8 py-4 rounded-lg text-base transition-colors duration-200"
+            className="inline-flex items-center justify-center gap-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-8 py-4 rounded-xl text-base transition-all duration-200 shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:-translate-y-0.5"
           >
             I&apos;m a Brand
             <ArrowRight size={18} />
           </Link>
           <Link
             href="/community/register"
-            className="inline-flex items-center justify-center gap-2 border-2 border-white text-white hover:bg-white/10 font-semibold px-8 py-4 rounded-lg text-base transition-colors duration-200"
+            className="inline-flex items-center justify-center gap-2 bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.15] hover:border-white/30 text-white font-semibold px-8 py-4 rounded-xl text-base transition-all duration-200 hover:-translate-y-0.5"
           >
             I own a community
             <ArrowRight size={18} />
           </Link>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-xs text-white/30 font-medium">
+          <span className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-green-400" />Free during beta</span>
+          <span className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-green-400" />No credit card required</span>
+          <span className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-green-400" />Cancel any time</span>
         </div>
       </div>
     </section>
@@ -460,51 +526,48 @@ function FinalCTA() {
 // ─── Footer ───────────────────────────────────────────────────────────────────
 function Footer() {
   return (
-    <footer className="bg-[#0F0F1A] text-white py-12 px-5 md:px-10">
+    <footer className="bg-[#080810] text-white py-14 px-5 md:px-10 border-t border-white/[0.05]">
       <div className="max-w-screen-xl mx-auto">
-        <div className="grid md:grid-cols-4 gap-8 mb-10">
-          {/* Brand */}
+        <div className="grid md:grid-cols-4 gap-10 mb-10">
           <div className="md:col-span-2">
-            <Link href="/" className="flex items-center gap-3 mb-4">
-              <SphereLogo size={28} />
-              <span className="font-semibold text-lg tracking-wide">Sphere</span>
+            <Link href="/" className="flex items-center gap-2.5 mb-4">
+              <SphereLogo size={26} />
+              <span className="font-semibold text-base tracking-wide">Sphere</span>
             </Link>
-            <p className="text-sm text-[#9CA3AF] max-w-xs leading-relaxed">
+            <p className="text-sm text-white/30 max-w-xs leading-relaxed">
               The marketplace that connects ambitious brands with engaged communities. Authentic partnerships, at scale.
             </p>
             <a
               href="mailto:hello@sphere.so"
-              className="inline-flex items-center gap-2 mt-4 text-sm text-[#9CA3AF] hover:text-white transition-colors duration-200"
+              className="inline-flex items-center gap-2 mt-4 text-sm text-white/30 hover:text-white/60 transition-colors duration-200"
             >
-              <Mail size={14} />
+              <Mail size={13} />
               hello@sphere.so
             </a>
           </div>
 
-          {/* Platform */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-[#9CA3AF] mb-4">Platform</h4>
-            <ul className="space-y-2 text-sm text-[#9CA3AF]">
-              <li><Link href="/brand/register" className="hover:text-white transition-colors duration-200">For Brands</Link></li>
-              <li><Link href="/community/register" className="hover:text-white transition-colors duration-200">For Communities</Link></li>
-              <li><a href="#how-it-works" className="hover:text-white transition-colors duration-200">How it works</a></li>
-              <li><Link href="/brand/login" className="hover:text-white transition-colors duration-200">Sign in</Link></li>
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-white/25 mb-4">Platform</h4>
+            <ul className="space-y-2.5 text-sm text-white/30">
+              <li><Link href="/brand/register" className="hover:text-white/70 transition-colors duration-200">For Brands</Link></li>
+              <li><Link href="/community/register" className="hover:text-white/70 transition-colors duration-200">For Communities</Link></li>
+              <li><a href="#how-it-works" className="hover:text-white/70 transition-colors duration-200">How it works</a></li>
+              <li><Link href="/brand/login" className="hover:text-white/70 transition-colors duration-200">Sign in</Link></li>
             </ul>
           </div>
 
-          {/* Legal */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-[#9CA3AF] mb-4">Legal</h4>
-            <ul className="space-y-2 text-sm text-[#9CA3AF]">
-              <li><a href="#" className="hover:text-white transition-colors duration-200">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors duration-200">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-white transition-colors duration-200">Cookie Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors duration-200">Contact</a></li>
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-white/25 mb-4">Legal</h4>
+            <ul className="space-y-2.5 text-sm text-white/30">
+              <li><a href="#" className="hover:text-white/70 transition-colors duration-200">Privacy Policy</a></li>
+              <li><a href="#" className="hover:text-white/70 transition-colors duration-200">Terms of Service</a></li>
+              <li><a href="#" className="hover:text-white/70 transition-colors duration-200">Cookie Policy</a></li>
+              <li><a href="#" className="hover:text-white/70 transition-colors duration-200">Contact</a></li>
             </ul>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-[#2A2A3C] flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-[#9CA3AF]">
+        <div className="pt-8 border-t border-white/[0.05] flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-white/20">
           <p>© {new Date().getFullYear()} Sphere. All rights reserved.</p>
           <p>Built for the creator economy.</p>
         </div>
@@ -520,8 +583,11 @@ export default function Home() {
       <Nav />
       <main>
         <Hero />
+        <LogoBar />
+        <StatsStrip />
         <HowItWorks />
-        <SocialProof />
+        <WhySphere />
+        <Testimonials />
         <FinalCTA />
       </main>
       <Footer />

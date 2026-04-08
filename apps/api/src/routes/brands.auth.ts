@@ -1,10 +1,15 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
 import { brands, BRAND_SAFETY_CATEGORIES } from '../db/schema';
 import { signToken, requireAuth, requireRole } from '../middleware/auth';
+import {
+  sendSignupConfirmationEmail,
+  sendPasswordResetEmail,
+} from '../services/email';
 
 const router = Router();
 
@@ -41,6 +46,8 @@ router.post('/register', async (req: Request, res: Response) => {
 
   const passwordHash = await bcrypt.hash(password, 12);
   const baseSlug = toSlug(name);
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+  const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
 
   const [brand] = await db.insert(brands).values({
     name,
@@ -50,7 +57,17 @@ router.post('/register', async (req: Request, res: Response) => {
     website,
     industry,
     description,
+    emailVerificationToken: verificationToken,
+    emailVerificationTokenExpiresAt: tokenExpiry,
   }).returning({ id: brands.id, name: brands.name, email: brands.email, slug: brands.slug });
+
+  // Send verification email (non-blocking — don't fail registration if email fails)
+  sendSignupConfirmationEmail({
+    to: email,
+    name,
+    role: 'brand',
+    verificationToken,
+  }).catch((err) => console.error('[email] signup confirmation failed:', err));
 
   const token = signToken(brand.id, 'brand');
   return res.status(201).json({ token, brand });
@@ -80,6 +97,105 @@ router.post('/login', async (req: Request, res: Response) => {
     token,
     brand: { id: brand.id, name: brand.name, email: brand.email, slug: brand.slug },
   });
+});
+
+/**
+ * POST /api/brands/verify-email
+ * Verify email address using the token sent on signup.
+ */
+router.post('/verify-email', async (req: Request, res: Response) => {
+  const schema = z.object({ token: z.string().min(1) });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'token is required' });
+
+  const [brand] = await db
+    .select()
+    .from(brands)
+    .where(eq(brands.emailVerificationToken, parsed.data.token))
+    .limit(1);
+
+  if (!brand) return res.status(400).json({ error: 'Invalid or expired token' });
+  if (brand.emailVerificationTokenExpiresAt && brand.emailVerificationTokenExpiresAt < new Date()) {
+    return res.status(400).json({ error: 'Verification token has expired' });
+  }
+  if (brand.emailVerifiedAt) {
+    return res.json({ message: 'Email already verified' });
+  }
+
+  await db.update(brands).set({
+    emailVerifiedAt: new Date(),
+    emailVerificationToken: null,
+    emailVerificationTokenExpiresAt: null,
+    updatedAt: new Date(),
+  }).where(eq(brands.id, brand.id));
+
+  return res.json({ message: 'Email verified successfully' });
+});
+
+/**
+ * POST /api/brands/forgot-password
+ * Request a password reset email.
+ */
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  const schema = z.object({ email: z.string().email() });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Valid email is required' });
+
+  // Always return success to prevent email enumeration
+  const [brand] = await db.select().from(brands).where(eq(brands.email, parsed.data.email)).limit(1);
+  if (brand) {
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1h
+
+    await db.update(brands).set({
+      passwordResetToken: resetToken,
+      passwordResetTokenExpiresAt: tokenExpiry,
+      updatedAt: new Date(),
+    }).where(eq(brands.id, brand.id));
+
+    sendPasswordResetEmail({
+      to: brand.email,
+      name: brand.name,
+      role: 'brand',
+      resetToken,
+    }).catch((err) => console.error('[email] password reset failed:', err));
+  }
+
+  return res.json({ message: 'If that email is registered, you will receive a reset link.' });
+});
+
+/**
+ * POST /api/brands/reset-password
+ * Set a new password using the reset token.
+ */
+router.post('/reset-password', async (req: Request, res: Response) => {
+  const schema = z.object({
+    token: z.string().min(1),
+    password: z.string().min(8),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'token and password (min 8 chars) are required' });
+
+  const [brand] = await db
+    .select()
+    .from(brands)
+    .where(eq(brands.passwordResetToken, parsed.data.token))
+    .limit(1);
+
+  if (!brand) return res.status(400).json({ error: 'Invalid or expired token' });
+  if (brand.passwordResetTokenExpiresAt && brand.passwordResetTokenExpiresAt < new Date()) {
+    return res.status(400).json({ error: 'Reset token has expired' });
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  await db.update(brands).set({
+    passwordHash,
+    passwordResetToken: null,
+    passwordResetTokenExpiresAt: null,
+    updatedAt: new Date(),
+  }).where(eq(brands.id, brand.id));
+
+  return res.json({ message: 'Password reset successfully' });
 });
 
 router.get('/me', requireAuth, requireRole('brand'), async (req: Request, res: Response) => {

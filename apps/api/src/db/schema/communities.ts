@@ -47,6 +47,13 @@ export const communityOwners = pgTable('community_owners', {
   bio: text('bio'),
   avatarUrl: text('avatar_url'),
   status: communityOwnerStatusEnum('status').notNull().default('active'),
+  // Email verification
+  emailVerifiedAt: timestamp('email_verified_at'),
+  emailVerificationToken: text('email_verification_token'),
+  emailVerificationTokenExpiresAt: timestamp('email_verification_token_expires_at'),
+  // Password reset
+  passwordResetToken: text('password_reset_token'),
+  passwordResetTokenExpiresAt: timestamp('password_reset_token_expires_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

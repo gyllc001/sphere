@@ -7,7 +7,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { db } from '../db';
 import { campaigns, communities, communityOwners, partnershipRequests, brands } from '../db/schema';
-import { eq, and, notInArray } from 'drizzle-orm';
+import { eq, and, notInArray, inArray, count } from 'drizzle-orm';
+import { sendBrandFirstMatchEmail, sendCommunityOwnerFirstOpportunityEmail } from './email';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -147,9 +148,14 @@ export async function runMatching(campaignId: string, topN = 10, threshold = 40)
   const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
   if (!campaign) throw new Error(`Campaign ${campaignId} not found`);
 
-  // Load brand safety settings for the campaign's brand
+  // Load brand details (safety settings + contact info for email notifications)
   const [brand] = await db
-    .select({ brandSafetyCategories: brands.brandSafetyCategories, brandSafetyKeywords: brands.brandSafetyKeywords })
+    .select({
+      brandSafetyCategories: brands.brandSafetyCategories,
+      brandSafetyKeywords: brands.brandSafetyKeywords,
+      brandEmail: brands.email,
+      brandName: brands.name,
+    })
     .from(brands)
     .where(eq(brands.id, campaign.brandId))
     .limit(1);
@@ -230,6 +236,63 @@ export async function runMatching(campaignId: string, topN = 10, threshold = 40)
     // Advance campaign to 'matching' status if still 'active'
     if (campaign.status === 'active') {
       await db.update(campaigns).set({ status: 'matching', updatedAt: new Date() }).where(eq(campaigns.id, campaignId));
+    }
+
+    // ── First-match notifications ────────────────────────────────────────────
+
+    // Brand: notify if this is the first batch of matches for this campaign
+    if (existingRequests.length === 0 && brand?.brandEmail) {
+      sendBrandFirstMatchEmail({
+        brandEmail: brand.brandEmail,
+        brandName: brand.brandName,
+        campaignTitle: campaign.title,
+        campaignId,
+        matchCount: top.length,
+      }).catch((err) => console.error('[email] brand first-match notification failed:', err));
+    }
+
+    // Community owners: notify each owner whose community gets its very first opportunity
+    const matchedCommunityIds = top.map((m) => m.communityId);
+    // Count prior partnership_requests for these communities (excluding the ones we just created)
+    const priorCountRows = await db
+      .select({ communityId: partnershipRequests.communityId, cnt: count() })
+      .from(partnershipRequests)
+      .where(
+        and(
+          inArray(partnershipRequests.communityId, matchedCommunityIds),
+          // The rows we just inserted are included; we want only those with count === 1 (just now)
+          // so we exclude campaignId = this campaign... actually simpler: count all then subtract 1
+        ),
+      )
+      .groupBy(partnershipRequests.communityId);
+
+    const priorCountMap = new Map(priorCountRows.map((r) => [r.communityId, Number(r.cnt)]));
+
+    // Communities where total count === 1 means this is their first-ever opportunity
+    const firstTimeCommunityIds = matchedCommunityIds.filter((id) => (priorCountMap.get(id) ?? 0) === 1);
+
+    if (firstTimeCommunityIds.length > 0) {
+      const firstTimeCommunities = await db
+        .select({
+          communityId: communities.id,
+          communityName: communities.name,
+          ownerEmail: communityOwners.email,
+          ownerName: communityOwners.name,
+        })
+        .from(communities)
+        .innerJoin(communityOwners, eq(communities.ownerId, communityOwners.id))
+        .where(inArray(communities.id, firstTimeCommunityIds));
+
+      for (const c of firstTimeCommunities) {
+        sendCommunityOwnerFirstOpportunityEmail({
+          ownerEmail: c.ownerEmail,
+          ownerName: c.ownerName,
+          communityName: c.communityName,
+          campaignTitle: campaign.title,
+          brandName: brand?.brandName ?? 'A brand',
+          requestId: c.communityId, // used as deep-link context
+        }).catch((err) => console.error('[email] community owner first-opportunity notification failed:', err));
+      }
     }
   }
 

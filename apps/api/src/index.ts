@@ -10,6 +10,7 @@ import matchingRoutes from './routes/matching';
 import dealRoutes from './routes/deals';
 import metricsRoutes from './routes/metrics';
 import adminRoutes from './routes/admin';
+import messageRoutes from './routes/messages';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -33,6 +34,7 @@ app.use('/api/campaigns', matchingRoutes);
 app.use('/api/deals', dealRoutes);
 app.use('/api/metrics', metricsRoutes);
 app.use('/api/admin', express.text({ type: ['text/csv', 'text/plain'] }), adminRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Global error handler — prevent unhandled async route errors from crashing the process
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

@@ -406,3 +406,68 @@ export const dealsApi = {
   sign: (token: string, id: string) =>
     request<Deal>(`/api/deals/${id}/sign`, { method: 'PATCH', token }),
 };
+
+// ── Messages ──────────────────────────────────────────────────────────────────
+
+export interface ConversationSummary {
+  id: string;
+  subject: string | null;
+  status: string;
+  dealId: string | null;
+  brandId: string;
+  communityOwnerId: string;
+  brandName: string;
+  ownerName: string;
+  brandLastReadAt: string | null;
+  ownerLastReadAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Message {
+  id: string;
+  senderType: 'brand' | 'community_owner' | 'system';
+  senderId: string | null;
+  body: string;
+  createdAt: string;
+}
+
+export interface ConversationDetail extends ConversationSummary {
+  messages: Message[];
+}
+
+export const messagesApi = {
+  listConversations: (token: string) =>
+    request<ConversationSummary[]>('/api/messages/conversations', { token }),
+
+  getConversation: (token: string, id: string) =>
+    request<ConversationDetail>(`/api/messages/conversations/${id}`, { token }),
+
+  startConversation: (
+    token: string,
+    body: {
+      communityOwnerId?: string;
+      brandId?: string;
+      dealId?: string;
+      subject?: string;
+      initialMessage: string;
+    },
+  ) =>
+    request<{ conversationId: string; message: Message }>(
+      '/api/messages/conversations',
+      { method: 'POST', token, body: JSON.stringify(body) },
+    ),
+
+  sendMessage: (token: string, conversationId: string, messageBody: string) =>
+    request<Message>(`/api/messages/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ body: messageBody }),
+    }),
+
+  markRead: (token: string, conversationId: string) =>
+    request<{ ok: boolean }>(`/api/messages/conversations/${conversationId}/read`, {
+      method: 'POST',
+      token,
+    }),
+};

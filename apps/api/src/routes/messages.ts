@@ -26,6 +26,7 @@ import {
   deals,
 } from '../db/schema';
 import { requireAuth } from '../middleware/auth';
+import { detectPii, PII_BLOCK_MESSAGE } from '../services/pii';
 
 const router = Router();
 router.use(requireAuth);
@@ -90,6 +91,17 @@ router.post('/conversations', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
   }
   const data = parsed.data;
+
+  // PII check on initial message
+  const pii = detectPii(data.initialMessage);
+  if (pii.hasPii) {
+    console.error('[pii-block] blocked initial message', {
+      senderId: req.auth!.sub,
+      role: req.auth!.role,
+      piiType: pii.type,
+    });
+    return res.status(422).json({ error: PII_BLOCK_MESSAGE, code: 'pii_blocked' });
+  }
 
   let brandId: string;
   let communityOwnerId: string;
@@ -216,6 +228,18 @@ router.post('/conversations/:id/messages', async (req: Request, res: Response) =
   const parsed = SendMessageSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Validation failed', details: parsed.error.flatten() });
+  }
+
+  // PII check — block email addresses and phone numbers
+  const pii = detectPii(parsed.data.body);
+  if (pii.hasPii) {
+    console.error('[pii-block] blocked message in conversation', {
+      conversationId: req.params.id,
+      senderId: req.auth!.sub,
+      role: req.auth!.role,
+      piiType: pii.type,
+    });
+    return res.status(422).json({ error: PII_BLOCK_MESSAGE, code: 'pii_blocked' });
   }
 
   // Verify caller is party to this conversation

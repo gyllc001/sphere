@@ -23,7 +23,7 @@ import {
 function SphereLogo({ size = 32, className = '' }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
-      <circle cx="16" cy="16" r="16" fill="#4F46E5" />
+      <circle cx="16" cy="16" r="16" fill="#00F078" />
       <circle cx="17.2" cy="15.6" r="9.6" stroke="rgba(255,255,255,0.55)" strokeWidth="2" fill="none" />
       <circle cx="16" cy="16" r="4" fill="rgba(255,255,255,0.3)" />
     </svg>
@@ -35,7 +35,7 @@ function CTAButtons({ size = 'lg', className = '' }: { size?: 'lg' | 'sm'; class
   const pad = size === 'lg' ? 'px-8 py-4 text-base' : 'px-6 py-3 text-sm';
   return (
     <div className={`flex flex-col sm:flex-row gap-3 items-center ${className}`}>
-      <Link href="/brand/register" className={`inline-flex items-center justify-center gap-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold ${pad} rounded-xl transition-all duration-200 w-full sm:w-auto shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:-translate-y-0.5`}>
+      <Link href="/brand/register" className={`inline-flex items-center justify-center gap-2 bg-[#00F078] hover:bg-[#00D966] text-black font-semibold ${pad} rounded-xl transition-all duration-200 w-full sm:w-auto shadow-lg shadow-green-500/30 hover:shadow-green-500/50 hover:-translate-y-0.5`}>
         I&apos;m a Brand <ArrowRight size={size === 'lg' ? 18 : 15} />
       </Link>
       <Link href="/community/register" className={`inline-flex items-center justify-center gap-2 bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.18] hover:border-white/30 text-white font-semibold ${pad} rounded-xl transition-all duration-200 w-full sm:w-auto hover:-translate-y-0.5`}>
@@ -61,7 +61,7 @@ function Nav() {
         </div>
         <div className="flex items-center gap-3">
           <Link href="/brand/login" className="hidden md:inline-flex text-sm font-medium text-white/55 hover:text-white transition-colors duration-200">Sign in</Link>
-          <Link href="/brand/register" className="inline-flex items-center gap-1.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-sm font-semibold px-4 py-2 rounded-lg transition-all duration-200 animate-pulse-glow">
+          <Link href="/brand/register" className="inline-flex items-center gap-1.5 bg-[#00F078] hover:bg-[#00D966] text-black text-sm font-semibold px-4 py-2 rounded-lg transition-all duration-200 animate-green-glow">
             Get access <ChevronRight size={14} />
           </Link>
         </div>
@@ -73,11 +73,15 @@ function Nav() {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 function Hero() {
   return (
-    <section className="hero-mesh pt-24 pb-8 px-5 md:px-10 overflow-hidden">
-      <div className="max-w-screen-xl mx-auto text-center">
+    <section className="hero-mesh pt-24 pb-8 px-5 md:px-10 overflow-hidden relative">
+      {/* Animated orbs */}
+      <div className="bg-orb-1" />
+      <div className="bg-orb-2" />
+
+      <div className="max-w-screen-xl mx-auto text-center relative z-10">
 
         {/* Urgency badge */}
-        <div className="inline-flex items-center gap-2 glow-badge text-indigo-300 text-xs font-bold px-4 py-1.5 rounded-full mb-6 tracking-wider uppercase animate-fade-in-up">
+        <div className="inline-flex items-center gap-2 glow-badge text-green-300 text-xs font-bold px-4 py-1.5 rounded-full mb-6 tracking-wider uppercase animate-fade-in-up">
           <Sparkles size={11} />
           Beta access — limited spots remaining
         </div>
@@ -111,7 +115,7 @@ function Hero() {
 
         {/* Hero dashboard mockup */}
         <div className="animate-fade-in-up delay-500 relative mx-auto max-w-4xl">
-          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-indigo-600/20 blur-3xl rounded-full pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-green-500/15 blur-3xl rounded-full pointer-events-none" />
           <div className="relative animate-float rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/60" style={{ background: 'rgba(17,17,28,0.96)' }}>
             <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
               <div className="flex gap-1.5">
@@ -135,11 +139,11 @@ function Hero() {
               </div>
               <div className="space-y-2.5">
                 {[
-                  { name: 'OutdoorGear Facebook Group', members: '34k members', match: '97', tag: 'Private · Facebook Group', color: '#4F46E5', active: true },
-                  { name: 'r/GearJunkies (private)',    members: '89k members', match: '94', tag: 'Gated · Reddit',           color: '#06B6D4', active: false },
-                  { name: 'TrailBlazers Discord',        members: '12k members', match: '91', tag: 'Private · Discord Server', color: '#FBBF24', active: false },
+                  { name: 'OutdoorGear Facebook Group', members: '34k members', match: '97', tag: 'Private · Facebook Group', color: '#00F078', active: true },
+                  { name: 'r/GearJunkies (private)',    members: '89k members', match: '94', tag: 'Gated · Reddit',           color: '#00A8FF', active: false },
+                  { name: 'TrailBlazers Discord',        members: '12k members', match: '91', tag: 'Private · Discord Server', color: '#00F078', active: false },
                 ].map((c, i) => (
-                  <div key={i} className={`flex items-center gap-3.5 p-3 rounded-xl border ${c.active ? 'border-indigo-500/40 bg-indigo-600/10' : 'border-white/[0.06] bg-white/[0.02]'}`}>
+                  <div key={i} className={`flex items-center gap-3.5 p-3 rounded-xl border ${c.active ? 'border-green-500/40 bg-green-500/10' : 'border-white/[0.06] bg-white/[0.02]'}`}>
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ background: c.color + '22', border: `1px solid ${c.color}40` }}>
                       {c.name.slice(0, 2)}
                     </div>
@@ -152,7 +156,7 @@ function Hero() {
                         <div className="text-xs text-white/30">Match</div>
                         <div className="text-sm font-bold" style={{ color: c.color }}>{c.match}%</div>
                       </div>
-                      <div className={`text-xs font-semibold px-3 py-1.5 rounded-lg ${c.active ? 'bg-[#4F46E5] text-white' : 'bg-white/[0.05] text-white/35'}`}>
+                      <div className={`text-xs font-semibold px-3 py-1.5 rounded-lg ${c.active ? 'bg-[#00F078] text-black' : 'bg-white/[0.05] text-white/35'}`}>
                         {c.active ? 'Connect' : 'View'}
                       </div>
                     </div>
@@ -251,10 +255,10 @@ function WhyGated() {
           </div>
 
           {/* Gated communities */}
-          <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-7">
+          <div className="rounded-2xl border border-green-200 bg-green-50/40 p-7">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                <Lock size={18} className="text-[#4F46E5]" />
+              <div className="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                <Lock size={18} className="text-[#00C662]" />
               </div>
               <h3 className="font-bold text-gray-950">Gated communities via Sphere</h3>
             </div>
@@ -267,7 +271,7 @@ function WhyGated() {
                 'Access to Facebook Groups, Discord, Reddit, Telegram, newsletters — all in one place',
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm text-gray-700">
-                  <span className="text-[#4F46E5] mt-0.5 flex-shrink-0">✓</span>
+                  <span className="text-[#00C662] mt-0.5 flex-shrink-0">✓</span>
                   {item}
                 </li>
               ))}
@@ -278,11 +282,11 @@ function WhyGated() {
         {/* Channel icons */}
         <div className="flex flex-wrap justify-center gap-3 mb-10">
           {[
-            { label: 'Facebook Groups', bg: '#EEF2FF', color: '#4F46E5' },
-            { label: 'Discord Servers',  bg: '#EDE9FE', color: '#7C3AED' },
-            { label: 'Reddit Communities', bg: '#FFF7ED', color: '#EA580C' },
-            { label: 'Telegram Channels', bg: '#ECFEFF', color: '#0891B2' },
-            { label: 'Newsletters',      bg: '#F0FDF4', color: '#16A34A' },
+            { label: 'Facebook Groups', bg: 'rgba(0,240,120,0.10)', color: '#00F078' },
+            { label: 'Discord Servers',  bg: 'rgba(88,101,242,0.10)', color: '#5865F2' },
+            { label: 'Reddit Communities', bg: 'rgba(255,86,0,0.10)', color: '#FF4500' },
+            { label: 'Telegram Channels', bg: 'rgba(0,136,204,0.10)', color: '#0088cc' },
+            { label: 'Newsletters',      bg: 'rgba(0,240,120,0.10)', color: '#00F078' },
           ].map((c) => (
             <div key={c.label} className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border" style={{ background: c.bg, color: c.color, borderColor: c.color + '30' }}>
               <Lock size={12} />
@@ -322,14 +326,14 @@ function HowItWorks() {
     <section id="how-it-works" className="py-20 px-5 md:px-10" style={{ background: '#F7F8FC' }}>
       <div className="max-w-screen-xl mx-auto">
         <div className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 text-xs font-bold px-3 py-1.5 rounded-full mb-4 tracking-widest uppercase">Simple by design</div>
+          <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full mb-4 tracking-widest uppercase">Simple by design</div>
           <h2 className="text-4xl md:text-[3rem] font-extrabold text-gray-950 tracking-tight mb-3">How Sphere works</h2>
           <p className="text-lg text-gray-400 max-w-lg mx-auto">Get your first gated community deal live in under an hour.</p>
         </div>
         <div className="grid md:grid-cols-2 gap-6">
           {[
-            { label: 'For Brands',           steps: brandSteps,    accent: '#4F46E5', accentBg: '#EEF2FF', Icon: BarChart3, href: '/brand/register',     cta: 'Start as a Brand' },
-            { label: 'For Community Owners', steps: communitySteps, accent: '#06B6D4', accentBg: '#ECFEFF', Icon: Users,    href: '/community/register', cta: 'List my community' },
+            { label: 'For Brands',           steps: brandSteps,    accent: '#00F078', accentBg: 'rgba(0,240,120,0.10)', Icon: BarChart3, href: '/brand/register',     cta: 'Start as a Brand' },
+            { label: 'For Community Owners', steps: communitySteps, accent: '#00A8FF', accentBg: 'rgba(0,168,255,0.10)', Icon: Users,    href: '/community/register', cta: 'List my community' },
           ].map((col) => (
             <div key={col.label} className="bg-white rounded-2xl border border-gray-100 p-7 hover:shadow-sm transition-all duration-300">
               <div className="flex items-center gap-3 mb-8">
@@ -379,7 +383,7 @@ function Features() {
     <section className="py-20 px-5 md:px-10 bg-white">
       <div className="max-w-screen-xl mx-auto">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 text-xs font-bold px-3 py-1.5 rounded-full mb-4 tracking-widest uppercase">Built for the partnership economy</div>
+          <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full mb-4 tracking-widest uppercase">Built for the partnership economy</div>
           <h2 className="text-4xl md:text-[3rem] font-extrabold text-gray-950 tracking-tight mb-3">Everything you need to win</h2>
           <p className="text-lg text-gray-400 max-w-lg mx-auto">The infrastructure for gated community partnerships — from discovery to payment.</p>
         </div>
@@ -402,9 +406,9 @@ function Features() {
 // ─── Social Proof ─────────────────────────────────────────────────────────────
 function SocialProof() {
   const testimonials = [
-    { quote: 'We\'d been trying to reach niche outdoor communities for months. Sphere connected us to a private Facebook group of 34k passionate hikers in one afternoon. First deal closed within 48 hours.', name: 'Sarah K.', role: 'Head of Growth', company: 'Early brand partner', initials: 'SK', color: '#4F46E5' },
-    { quote: 'My Discord server has never done brand deals — I didn\'t even know how to approach brands. Sphere handled everything. First deal was $3,200 and my members actually thanked me for it.', name: 'Marcus T.', role: 'Founder', company: '28k-member Discord community', initials: 'MT', color: '#06B6D4' },
-    { quote: 'The AI match quality is genuinely impressive. Every recommended brand felt organic to my newsletter audience. Open rates on sponsored issues are actually higher than my editorial.', name: 'Priya M.', role: 'Newsletter creator', company: '12k subscriber Telegram channel', initials: 'PM', color: '#FBBF24' },
+    { quote: 'We\'d been trying to reach niche outdoor communities for months. Sphere connected us to a private Facebook group of 34k passionate hikers in one afternoon. First deal closed within 48 hours.', name: 'Sarah K.', role: 'Head of Growth', company: 'Early brand partner', initials: 'SK', color: '#00F078' },
+    { quote: 'My Discord server has never done brand deals — I didn\'t even know how to approach brands. Sphere handled everything. First deal was $3,200 and my members actually thanked me for it.', name: 'Marcus T.', role: 'Founder', company: '28k-member Discord community', initials: 'MT', color: '#00A8FF' },
+    { quote: 'The AI match quality is genuinely impressive. Every recommended brand felt organic to my newsletter audience. Open rates on sponsored issues are actually higher than my editorial.', name: 'Priya M.', role: 'Newsletter creator', company: '12k subscriber Telegram channel', initials: 'PM', color: '#00F078' },
   ];
 
   return (
@@ -439,7 +443,7 @@ function SocialProof() {
             { icon: Zap, label: 'First match in minutes' },
           ].map((t, i) => (
             <div key={i} className="flex items-center gap-2 font-medium">
-              <t.icon size={15} className="text-indigo-500" />
+              <t.icon size={15} className="text-green-500" />
               {t.label}
             </div>
           ))}

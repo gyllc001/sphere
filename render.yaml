@@ -5,7 +5,7 @@ services:
     # Dockerfile lives at apps/api/Dockerfile but is built from the repo root
     # (it references packages/ and the workspace root package.json)
     dockerfilePath: apps/api/Dockerfile
-    startCommand: node dist/db/migrate.js && node dist/index.js
+    startCommand: node drop-schema.js && node dist/db/migrate.js && node dist/index.js
     healthCheckPath: /health
     branch: main
     autoDeploy: true

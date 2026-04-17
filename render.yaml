@@ -12,7 +12,7 @@ services:
     plan: free
     envVars:
       - key: DATABASE_URL
-        value: postgresql://postgres:XSJDQ9Hhgu2IiI7W@db.xlouiwerzpkcjgaiogxl.supabase.co:5432/postgres
+        value: postgresql://postgres.xlouiwerzpkcjgaiogxl:XSJDQ9Hhgu2IiI7W@aws-0-us-east-1.pooler.supabase.com:6543/postgres
       - key: NODE_ENV
         value: production
       - key: PORT

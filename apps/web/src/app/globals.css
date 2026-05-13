@@ -2,53 +2,162 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+/* ──────────────────────────────────────────────────────────────────────
+   Sphere design tokens (Step 9 part 1).
 
-/* ── Brand tokens (dark mode default) ───────────────────────────────── */
+   Tokens are declared as CSS custom properties so the dark theme can be
+   activated by toggling `.dark` on <html> without touching any JSX.
+   Tailwind is configured with `darkMode: 'class'` and references each
+   variable via the `var(--name)` mapping in tailwind.config.ts.
+─────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --color-accent: #00F078;
-  --color-bg: #0A0A0A;
-  --color-text: #FAFAF9;
-  --glass-bg: rgba(255,255,255,0.05);
-  --glass-border: rgba(255,255,255,0.10);
-  --glass-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+  /* Fonts (loaded by next/font in the root layout). */
+  --font-inter: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-space-grotesk: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+
+  /* Surfaces */
+  --bg-base: #FAFAF9;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #F4F4F3;
+  --bg-muted: #E8E8E6;
+
+  /* Borders */
+  --border-default: #E2E2E0;
+  --border-strong: #C8C8C5;
+
+  /* Text */
+  --text-primary: #111110;
+  --text-secondary: #6C6C69;
+  --text-tertiary: #9C9C99;
+
+  /* Accent (Sphere green) */
+  --accent: #00C662;
+  --accent-hover: #00A854;
+  --accent-text: #007A3D;
+
+  /* Sidebar (dark even in light theme) */
+  --sidebar-bg: #111110;
+  --sidebar-text: #A8A8A5;
+  --sidebar-text-active: #FAFAF9;
+  --sidebar-border: #222221;
+  --sidebar-item-hover: #1C1C1B;
+
+  /* Effects */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+
+  /* Legacy vars retained for marketing/brand/community pages until they
+     are ported in Step 9 part 2. */
+  --color-accent: #00C662;
+  --color-bg: #F2F1EF;
+  --color-text: #111110;
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.9);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
   --glass-radius: 24px;
   --spacing-card: 28px;
   --spacing-gap: 20px;
 }
 
-/* ── Light mode theme ──────────────────────────────────────────────── */
+.dark {
+  --bg-base: #111110;
+  --bg-surface: #1C1C1B;
+  --bg-subtle: #252524;
+  --bg-muted: #2E2E2D;
+  --border-default: #333332;
+  --border-strong: #4A4A48;
+  --text-primary: #FAFAF9;
+  --text-secondary: #A8A8A5;
+  --text-tertiary: #6C6C69;
+  --accent: #00F078;
+  --accent-hover: #00D468;
+  --accent-text: #00F078;
+  --sidebar-bg: #0A0A09;
+  --sidebar-text: #6C6C69;
+  --sidebar-text-active: #FAFAF9;
+  --sidebar-border: #1C1C1B;
+  --sidebar-item-hover: #1C1C1B;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.15);
 
-[data-theme="light"] {
-  --color-accent: #00C662;
-  --color-bg: #F2F1EF;
-  --color-text: #111110;
-  --glass-bg: rgba(255,255,255,0.72);
-  --glass-border: rgba(255,255,255,0.90);
-  --glass-shadow: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.95);
+  /* Legacy vars for the old data-theme="dark" marketing styling. */
+  --color-accent: #00F078;
+  --color-bg: #0A0A0A;
+  --color-text: #FAFAF9;
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Marketing pages still rely on the [data-theme="dark"] selector; keep it
+   pointing at the dark legacy values for now. */
+[data-theme='dark'] {
+  --color-accent: #00F078;
+  --color-bg: #0A0A0A;
+  --color-text: #FAFAF9;
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 html {
   scroll-behavior: smooth;
-  /* Dark mode is default */
-  background: var(--color-bg);
 }
 
 body {
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  color: var(--color-text);
-  background: var(--color-bg);
+  font-family: var(--font-inter);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  font-weight: 700;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-space-grotesk);
 }
 
-/* ── Keyframe animations ───────────────────────────────────────────── */
+/* ── Dialog animations (Radix data-state driven) ────────────────────── */
+
+@keyframes dialog-overlay-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes dialog-overlay-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes dialog-content-show {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes dialog-content-hide {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+}
+
+/* ── Keyframe animations (kept for marketing pages) ─────────────────── */
 
 @keyframes fadeInUp {
   from {
@@ -89,12 +198,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes borderGlow {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
 @keyframes float {
@@ -141,39 +246,16 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── Animation utility classes ─────────────────────────────────────── */
 
-.animate-fade-in-up {
-  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
+.animate-fade-in-up { animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-up    { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-slide-up   { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in    { animation: fadeIn 0.7s ease both; }
+.animate-float      { animation: float 4s ease-in-out infinite; }
+.animate-marquee    { animation: marquee 28s linear infinite; }
+.animate-pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
+.animate-green-glow { animation: greenGlow 2.5s ease-in-out infinite; }
 
-.animate-fade-up {
-  animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.7s ease both;
-}
-
-.animate-float {
-  animation: float 4s ease-in-out infinite;
-}
-
-.animate-marquee {
-  animation: marquee 28s linear infinite;
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 2.5s ease-in-out infinite;
-}
-
-.animate-green-glow {
-  animation: greenGlow 2.5s ease-in-out infinite;
-}
-
-.delay-50 { animation-delay: 50ms; }
+.delay-50  { animation-delay: 50ms; }
 .delay-100 { animation-delay: 100ms; }
 .delay-150 { animation-delay: 150ms; }
 .delay-200 { animation-delay: 200ms; }
@@ -184,7 +266,8 @@ h1, h2, h3, h4, h5, h6 {
 .delay-700 { animation-delay: 700ms; }
 .delay-800 { animation-delay: 800ms; }
 
-/* ── Gradient text ─────────────────────────────────────────────────── */
+/* ── Marketing-only legacy components (gradient text, glass card,
+       orbs, hero mesh, etc.) ─────────────────────────────────────── */
 
 .gradient-text {
   background: linear-gradient(135deg, var(--color-accent) 0%, #00A8FF 100%);
@@ -192,8 +275,6 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-
-/* ── Glow badge (animated border) ──────────────────────────────────── */
 
 .glow-badge {
   position: relative;
@@ -212,8 +293,6 @@ h1, h2, h3, h4, h5, h6 {
   z-index: -1;
   opacity: 0.6;
 }
-
-/* ── Glass card & components ───────────────────────────────────────── */
 
 .glass-card,
 .card,
@@ -235,15 +314,13 @@ h1, h2, h3, h4, h5, h6 {
 .modal:hover,
 .metric-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.10);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
-
-/* ── Feature card hover lift ───────────────────────────────────────── */
 
 .feature-card {
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.25s ease;
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
 }
 
 .feature-card:hover {
@@ -252,29 +329,12 @@ h1, h2, h3, h4, h5, h6 {
   border-color: rgba(0, 240, 120, 0.3);
 }
 
-/* ── Button hover lift with green glow ─────────────────────────────── */
-
-button, a.button {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-button:hover, a.button:hover {
-  transform: translateY(-1px);
-}
-
-button.with-glow:hover, a.button.with-glow:hover {
-  box-shadow: 0 0 20px rgba(0, 240, 120, 0.4),
-              0 0 40px rgba(0, 240, 120, 0.2);
-}
-
-/* ── Animated orbs (dark mode) ─────────────────────────────────────── */
-
 .bg-orb-1 {
   position: absolute;
   width: 700px;
   height: 700px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0,240,120,0.18) 0%, rgba(0,240,120,0.05) 40%, transparent 68%);
+  background: radial-gradient(circle, rgba(0, 240, 120, 0.18) 0%, rgba(0, 240, 120, 0.05) 40%, transparent 68%);
   top: -100px;
   left: -100px;
   pointer-events: none;
@@ -286,7 +346,7 @@ button.with-glow:hover, a.button.with-glow:hover {
   width: 600px;
   height: 600px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0,168,255,0.12) 0%, rgba(0,168,255,0.03) 40%, transparent 70%);
+  background: radial-gradient(circle, rgba(0, 168, 255, 0.12) 0%, rgba(0, 168, 255, 0.03) 40%, transparent 70%);
   bottom: -200px;
   right: -150px;
   pointer-events: none;
@@ -299,15 +359,13 @@ button.with-glow:hover, a.button.with-glow:hover {
   width: 500px;
   height: 500px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0,240,120,0.08) 0%, rgba(0,240,120,0.02) 40%, transparent 70%);
+  background: radial-gradient(circle, rgba(0, 240, 120, 0.08) 0%, rgba(0, 240, 120, 0.02) 40%, transparent 70%);
   top: 50%;
   right: 10%;
   pointer-events: none;
   animation: orbFloat 20s ease-in-out infinite;
   animation-delay: -10s;
 }
-
-/* ── Hero mesh gradient ────────────────────────────────────────────── */
 
 .hero-mesh {
   background-color: var(--color-bg);
@@ -317,14 +375,10 @@ button.with-glow:hover, a.button.with-glow:hover {
     radial-gradient(ellipse 40% 30% at 20% 80%, rgba(0, 240, 120, 0.08) 0%, transparent 50%);
 }
 
-/* ── Dark section background ───────────────────────────────────────── */
-
 .dark-section {
   background-color: var(--color-bg);
   background-image: radial-gradient(ellipse 60% 40% at 50% 100%, rgba(0, 240, 120, 0.15) 0%, transparent 60%);
 }
-
-/* ── Scroll reveal (IntersectionObserver) ──────────────────────────── */
 
 .scroll-reveal {
   opacity: 0;
@@ -336,8 +390,6 @@ button.with-glow:hover, a.button.with-glow:hover {
   opacity: 1;
   transform: translateY(0);
 }
-
-/* ── Stat counter animation ───────────────────────────────────────── */
 
 .stat-counter {
   animation: count-up 1s ease-out both;

@@ -16,9 +16,10 @@
     "db:generate": "turbo run db:generate --filter=@sphere/api"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
-    "prettier": "^3.2.5",
     "@types/node": "^20.0.0",
+    "prettier": "^3.2.5",
+    "supabase": "^2.98.2",
+    "turbo": "^2.0.0",
     "typescript": "^5.4.5"
   },
   "engines": {
